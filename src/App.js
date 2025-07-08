@@ -17,6 +17,21 @@ import RecommendationsScreen from './components/ai/RecommendationsScreen';
 import LoadingScreen from './components/shared/LoadingScreen';
 import ApiSetupModal from './components/auth/ApiSetupModal';
 
+// NEW FEATURE SCREENS
+import ColorAnalysisScreen from './components/analysis/ColorAnalysisScreen';
+import BodyShapeAnalysisScreen from './components/analysis/BodyShapeAnalysisScreen';
+import StyleDNAScreen from './components/analysis/StyleDNAScreen';
+import StyleTwinFinderScreen from './components/ai/StyleTwinFinderScreen';
+import OutfitPlannerScreen from './components/planning/OutfitPlannerScreen';
+import WardrobeChallengesScreen from './components/challenges/WardrobeChallengesScreen';
+import SmartShoppingScreen from './components/shopping/SmartShoppingScreen';
+import VirtualFittingScreen from './components/fitting/VirtualFittingScreen';
+import ProfessionalWardrobeScreen from './components/professional/ProfessionalWardrobeScreen';
+import EventPlannerScreen from './components/events/EventPlannerScreen';
+import BeautyIntegrationScreen from './components/beauty/BeautyIntegrationScreen';
+import PersonalShopperScreen from './components/ai/PersonalShopperScreen';
+import PersonalStylistScreen from './components/ai/PersonalStylistScreen';
+
 // Import contexts
 import { AppProvider } from './contexts/AppContext';
 
@@ -30,6 +45,7 @@ const WhatToWearApp = () => {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [showApiSetup, setShowApiSetup] = useState(false);
   const [openaiApiKey, setOpenaiApiKey] = useState('');
+  const [screenData, setScreenData] = useState(null);
 
   // Initialize Firebase Auth listener
   useEffect(() => {
@@ -64,6 +80,7 @@ const WhatToWearApp = () => {
 
   const navigateToScreen = (screen, data = null) => {
     setIsTransitioning(true);
+    setScreenData(data);
     setTimeout(() => {
       setCurrentScreen(screen);
       setIsTransitioning(false);
@@ -90,12 +107,13 @@ const WhatToWearApp = () => {
     const screenProps = {
       navigateToScreen,
       user,
-      openaiApiKey
+      openaiApiKey,
+      screenData
     };
 
     switch (currentScreen) {
       case 'home':
-        return         <HomeScreen {...screenProps} setShowApiSetup={setShowApiSetup} />;
+        return <HomeScreen {...screenProps} setShowApiSetup={setShowApiSetup} />;
       case 'wardrobe':
         return <WardrobeScreen {...screenProps} />;
       case 'add-item':
@@ -114,6 +132,35 @@ const WhatToWearApp = () => {
         return <StyleChatScreen {...screenProps} />;
       case 'recommendations':
         return <RecommendationsScreen {...screenProps} />;
+      
+      // NEW FEATURE SCREENS
+      case 'color-analysis':
+        return <ColorAnalysisScreen {...screenProps} />;
+      case 'body-shape-analysis':
+        return <BodyShapeAnalysisScreen {...screenProps} />;
+      case 'style-dna':
+        return <StyleDNAScreen {...screenProps} />;
+      case 'style-twin-finder':
+        return <StyleTwinFinderScreen {...screenProps} />;
+      case 'outfit-planner':
+        return <OutfitPlannerScreen {...screenProps} />;
+      case 'wardrobe-challenges':
+        return <WardrobeChallengesScreen {...screenProps} />;
+      case 'smart-shopping':
+        return <SmartShoppingScreen {...screenProps} />;
+      case 'virtual-fitting':
+        return <VirtualFittingScreen {...screenProps} />;
+      case 'professional-wardrobe':
+        return <ProfessionalWardrobeScreen {...screenProps} />;
+      case 'event-planner':
+        return <EventPlannerScreen {...screenProps} />;
+      case 'beauty-integration':
+        return <BeautyIntegrationScreen {...screenProps} />;
+      case 'personal-shopper':
+        return <PersonalShopperScreen {...screenProps} />;
+      case 'personal-stylist':
+        return <PersonalStylistScreen {...screenProps} />;
+      
       default:
         return <HomeScreen {...screenProps} />;
     }

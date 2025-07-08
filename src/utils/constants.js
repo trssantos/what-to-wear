@@ -1,6 +1,4 @@
-// 🔑 HARDCODED OpenAI API Key (TEMPORÁRIO)
-// TODO: Mover para variáveis de ambiente em produção
-export const OPENAI_API_KEY = ''
+export const OPENAI_API_KEY = process.env.REACT_APP_OPENAI_API_KEY;
 
 // Categorias de roupas disponíveis
 export const CLOTHING_CATEGORIES = [

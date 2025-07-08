@@ -3,15 +3,34 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-// SUBSTITUI ESTA CONFIGURAÇÃO PELA TUA CONFIGURAÇÃO DO FIREBASE
+// Firebase configuration usando variáveis de ambiente
 const firebaseConfig = {
-    apiKey: "AIzaSyA5XIyC5b_jIPDq1sEn_Vvc7mavkU5jUjo",
-    authDomain: "what-to-wear-app-14783.firebaseapp.com",
-    projectId: "what-to-wear-app-14783",
-    storageBucket: "what-to-wear-app-14783.firebasestorage.app",
-    messagingSenderId: "695093746824",
-    appId: "1:695093746824:web:ccbd22c6b3a20615e7533d"
-  };
+    apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
+    authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
+    projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
+    storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.REACT_APP_FIREBASE_APP_ID
+};
+
+// Verificar se todas as variáveis de ambiente estão definidas
+const requiredEnvVars = [
+    'REACT_APP_FIREBASE_API_KEY',
+    'REACT_APP_FIREBASE_AUTH_DOMAIN',
+    'REACT_APP_FIREBASE_PROJECT_ID',
+    'REACT_APP_FIREBASE_STORAGE_BUCKET',
+    'REACT_APP_FIREBASE_MESSAGING_SENDER_ID',
+    'REACT_APP_FIREBASE_APP_ID'
+];
+
+const missingVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingVars.length > 0) {
+    console.error('❌ Variáveis de ambiente em falta:', missingVars);
+    throw new Error(`Configuração Firebase incompleta. Variáveis em falta: ${missingVars.join(', ')}`);
+}
+
+console.log('✅ Firebase configurado com variáveis de ambiente');
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
