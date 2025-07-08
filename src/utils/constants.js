@@ -1,6 +1,6 @@
 // 🔑 HARDCODED OpenAI API Key (TEMPORÁRIO)
 // TODO: Mover para variáveis de ambiente em produção
-export const OPENAI_API_KEY = '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';
+export const OPENAI_API_KEY = ''
 
 // Categorias de roupas disponíveis
 export const CLOTHING_CATEGORIES = [
