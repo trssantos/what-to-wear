@@ -297,6 +297,7 @@ Formato JSON combinado.`;
               beautyProfile={beautyProfile}
               setBeautyProfile={setBeautyProfile}
               faceImage={faceImage}
+              setFaceImage={setFaceImage}
               onImageUpload={handleImageUpload}
               onCameraOpen={() => setShowCamera(true)}
             />
@@ -307,6 +308,7 @@ Formato JSON combinado.`;
                 outfits={outfits}
                 selectedOutfit={selectedOutfit}
                 setSelectedOutfit={setSelectedOutfit}
+                navigateToScreen={navigateToScreen}
               />
             )}
 
@@ -343,6 +345,7 @@ const BeautyProfileSetup = ({
   beautyProfile, 
   setBeautyProfile, 
   faceImage, 
+  setFaceImage,
   onImageUpload, 
   onCameraOpen 
 }) => (
@@ -496,7 +499,7 @@ const BeautyProfileSetup = ({
 );
 
 // Outfit Selection Component
-const OutfitSelection = ({ outfits, selectedOutfit, setSelectedOutfit }) => (
+const OutfitSelection = ({ outfits, selectedOutfit, setSelectedOutfit, navigateToScreen }) => (
   <div className="bg-white rounded-2xl p-4 shadow-xl">
     <h3 className="font-semibold text-gray-800 mb-3">Selecionar Outfit</h3>
     

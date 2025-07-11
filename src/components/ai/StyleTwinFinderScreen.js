@@ -211,6 +211,7 @@ Formato JSON:
             mode={mode}
             setMode={setMode}
             inspirationImage={inspirationImage}
+            setInspirationImage={setInspirationImage}
             onImageUpload={handleImageUpload}
             onCameraOpen={() => setShowCamera(true)}
             onAnalyze={findStyleTwin}
@@ -229,6 +230,7 @@ Formato JSON:
               setResults(null);
               setInspirationImage(null);
             }}
+            setInspirationImage={setInspirationImage}
             navigateToScreen={navigateToScreen}
           />
         )}
@@ -242,6 +244,7 @@ const InitialModeSelection = ({
   mode, 
   setMode, 
   inspirationImage, 
+  setInspirationImage,
   onImageUpload, 
   onCameraOpen, 
   onAnalyze, 
@@ -367,6 +370,7 @@ const ResultsDisplay = ({
   onSaveLook, 
   onCopyLook, 
   onNewSearch, 
+  setInspirationImage,
   navigateToScreen 
 }) => {
   const [activeTab, setActiveTab] = useState(mode === 'inspiration' ? 'recreation' : 'looks');

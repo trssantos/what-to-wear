@@ -274,6 +274,7 @@ Formato: texto descritivo e recomendações.`;
         {activeTab === 'body' && (
           <BodySetupTab
             bodyImage={bodyImage}
+            setBodyImage={setBodyImage}
             measurements={measurements}
             setMeasurements={setMeasurements}
             onImageUpload={handleImageUpload}
@@ -318,6 +319,7 @@ Formato: texto descritivo e recomendações.`;
 // Body Setup Tab
 const BodySetupTab = ({ 
   bodyImage, 
+  setBodyImage,
   measurements, 
   setMeasurements, 
   onImageUpload, 
