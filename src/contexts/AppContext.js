@@ -1,7 +1,9 @@
+// src/contexts/AppContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth } from '../firebase';
 import { useWardrobe } from '../hooks/useWardrobe';
 import { useOutfits } from '../hooks/useOutfits';
+import { useProfile } from '../hooks/useProfile'; // ✅ NOVO
 
 const AppContext = createContext();
 
@@ -20,6 +22,7 @@ export const AppProvider = ({ children }) => {
   // Initialize hooks
   const wardrobeHook = useWardrobe();
   const outfitsHook = useOutfits();
+  const profileHook = useProfile(); // ✅ NOVO
 
   // Load data when user changes
   useEffect(() => {
@@ -29,10 +32,12 @@ export const AppProvider = ({ children }) => {
         setTimeout(() => {
           wardrobeHook.loadUserWardrobe(user.uid);
           outfitsHook.loadUserOutfits(user.uid);
+          profileHook.loadUserProfile(user.uid); // ✅ NOVO
         }, 1500);
       } else {
         wardrobeHook.setWardrobe([]);
         outfitsHook.setOutfits([]);
+        profileHook.clearUserProfile(); // ✅ NOVO
       }
     });
 
@@ -50,6 +55,9 @@ export const AppProvider = ({ children }) => {
     
     // Outfits
     ...outfitsHook,
+    
+    // ✅ NOVO: Profile
+    ...profileHook,
     
     // Selected items
     selectedItem,
