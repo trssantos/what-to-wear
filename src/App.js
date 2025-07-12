@@ -17,6 +17,19 @@ import StyleChatScreen from './components/ai/StyleChatScreen';
 import RecommendationsScreen from './components/ai/RecommendationsScreen';
 import AISetupScreen from './components/setup/AISetupScreen';
 
+// Import analysis screens - ADICIONAR ESTES IMPORTS EM FALTA
+import ColorAnalysisScreen from './components/analysis/ColorAnalysisScreen';
+import BodyShapeAnalysisScreen from './components/analysis/BodyShapeAnalysisScreen';
+import StyleDNAScreen from './components/analysis/StyleDNAScreen';
+import StyleTwinFinderScreen from './components/ai/StyleTwinFinderScreen';
+import PersonalStylistScreen from './components/ai/PersonalStylistScreen';
+
+// Import additional screens
+import VirtualFittingScreen from './components/fitting/VirtualFittingScreen';
+import WardrobeChallengesScreen from './components/challenges/WardrobeChallengesScreen';
+import PersonalShopperScreen from './components/ai/PersonalShopperScreen';
+import SmartShoppingScreen from './components/shopping/SmartShoppingScreen';
+
 // Import contexts
 import { AppProvider } from './contexts/AppContext';
 
@@ -75,7 +88,8 @@ const WhatToWearApp = () => {
 
     const commonProps = {
       navigateToScreen,
-      screenData
+      screenData,
+      openaiApiKey: OPENAI_API_KEY // Adicionar a API key de volta para os componentes de análise
     };
 
     switch (currentScreen) {
@@ -101,13 +115,35 @@ const WhatToWearApp = () => {
       case 'outfit-detail':
         return <OutfitDetailScreen {...commonProps} />;
       
-      // AI Features - Removidas as props openaiApiKey
+      // AI Features
       case 'outfit-quiz':
         return <OutfitQuizScreen {...commonProps} />;
       case 'style-chat':
         return <StyleChatScreen {...commonProps} />;
       case 'recommendations':
         return <RecommendationsScreen {...commonProps} />;
+      
+      // Analysis Features - ADICIONAR ESTES CASES EM FALTA
+      case 'color-analysis':
+        return <ColorAnalysisScreen {...commonProps} />;
+      case 'body-shape-analysis':
+        return <BodyShapeAnalysisScreen {...commonProps} />;
+      case 'style-dna':
+        return <StyleDNAScreen {...commonProps} />;
+      case 'style-twin-finder':
+        return <StyleTwinFinderScreen {...commonProps} />;
+      case 'personal-stylist':
+        return <PersonalStylistScreen {...commonProps} />;
+      
+      // Additional Features
+      case 'virtual-fitting':
+        return <VirtualFittingScreen {...commonProps} />;
+      case 'wardrobe-challenges':
+        return <WardrobeChallengesScreen {...commonProps} />;
+      case 'personal-shopper':
+        return <PersonalShopperScreen {...commonProps} />;
+      case 'smart-shopping':
+        return <SmartShoppingScreen {...commonProps} />;
       
       // AI Setup
       case 'ai-setup':

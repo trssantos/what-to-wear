@@ -26,7 +26,6 @@ INFORMAÇÕES FORNECIDAS PELO UTILIZADOR:
 - Categoria: ${itemInfo.category || 'Não especificada'}
 - Cor: ${itemInfo.color || 'Não especificada'}
 - Marca: ${itemInfo.brand || 'Não especificada'}
-- Estado: ${itemInfo.condition || 'Não especificado'}
 - Tags: ${itemInfo.tags?.join(', ') || 'Nenhuma'}
 - Notas do utilizador: ${itemInfo.notes || 'Nenhuma'}
 
@@ -41,22 +40,14 @@ Cria uma descrição completa e técnica da peça que inclua:
    - Acabamentos e detalhes decorativos
 3. **ANÁLISE DE MATERIAIS E CONSTRUÇÃO**:
    - Tipo de tecido aparente (algodão, poliéster, mistura, etc.)
-   - Peso e caimento do tecido
-   - Qualidade de construção observada
 4. **DETALHES CONSTRUTIVOS E FUNCIONAIS**:
    - Tipo de costuras e acabamentos
    - Botões, fechos, zíperes
-   - Bolsos (quantos, tipo, localização)
+   - Bolsos
    - Gola, decote, mangas (se aplicável)
    - Corte e silhueta
-5. **AVALIAÇÃO DE ESTADO**:
-   - Condição visual geral
-   - Sinais de desgaste, se visíveis
-   - Qualidade de conservação
 6. **ANÁLISE DE ESTILO E VERSATILIDADE**:
    - Estilo específico (casual, formal, desportivo, etc.)
-   - Ocasiões apropriadas para uso
-   - Estação do ano mais adequada
    - Nível de formalidade
 7. **POTENCIAL DE COMBINAÇÃO**:
    - Tipos de peças que combinam bem
@@ -68,9 +59,9 @@ Cria uma descrição completa e técnica da peça que inclua:
    - Cuidados especiais necessários
    - Dicas de conservação
 
-IMPORTANTE: Sê muito detalhado e técnico na análise. Esta informação será usada para catalogação digital e recomendações automáticas de combinações.
+IMPORTANTE: Esta informação será usada para catalogação digital e recomendações automáticas de combinações por isso descreve de forma curta, objetiva mas com a informação relevante para outros prompts futuros como outfits se combina com o estilo de corpo etc.
 
-FORMATO DE RESPOSTA: Texto corrido descritivo, sem listas ou bullets. Máximo 800 palavras.`;
+FORMATO DE RESPOSTA: Texto corrido descritivo, sem listas ou bullets. Máximo 100 palavras.`;
 
       const messages = [
         {
