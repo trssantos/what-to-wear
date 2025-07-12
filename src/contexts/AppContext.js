@@ -1,9 +1,9 @@
-// src/contexts/AppContext.js
+// src/contexts/AppContext.js - Versão sem delay
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth } from '../firebase';
 import { useWardrobe } from '../hooks/useWardrobe';
 import { useOutfits } from '../hooks/useOutfits';
-import { useProfile } from '../hooks/useProfile'; // ✅ NOVO
+import { useProfile } from '../hooks/useProfile';
 
 const AppContext = createContext();
 
@@ -22,22 +22,21 @@ export const AppProvider = ({ children }) => {
   // Initialize hooks
   const wardrobeHook = useWardrobe();
   const outfitsHook = useOutfits();
-  const profileHook = useProfile(); // ✅ NOVO
+  const profileHook = useProfile();
 
   // Load data when user changes
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         console.log('Loading user data for:', user.uid);
-        setTimeout(() => {
-          wardrobeHook.loadUserWardrobe(user.uid);
-          outfitsHook.loadUserOutfits(user.uid);
-          profileHook.loadUserProfile(user.uid); // ✅ NOVO
-        }, 1500);
+        // Removido o setTimeout - carregar imediatamente
+        wardrobeHook.loadUserWardrobe(user.uid);
+        outfitsHook.loadUserOutfits(user.uid);
+        profileHook.loadUserProfile(user.uid);
       } else {
         wardrobeHook.setWardrobe([]);
         outfitsHook.setOutfits([]);
-        profileHook.clearUserProfile(); // ✅ NOVO
+        profileHook.clearUserProfile();
       }
     });
 
@@ -56,7 +55,7 @@ export const AppProvider = ({ children }) => {
     // Outfits
     ...outfitsHook,
     
-    // ✅ NOVO: Profile
+    // Profile
     ...profileHook,
     
     // Selected items

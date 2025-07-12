@@ -1,3 +1,4 @@
+// src/App.js - Versão corrigida
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
@@ -17,7 +18,7 @@ import StyleChatScreen from './components/ai/StyleChatScreen';
 import RecommendationsScreen from './components/ai/RecommendationsScreen';
 import AISetupScreen from './components/setup/AISetupScreen';
 
-// Import analysis screens - ADICIONAR ESTES IMPORTS EM FALTA
+// Import analysis screens
 import ColorAnalysisScreen from './components/analysis/ColorAnalysisScreen';
 import BodyShapeAnalysisScreen from './components/analysis/BodyShapeAnalysisScreen';
 import StyleDNAScreen from './components/analysis/StyleDNAScreen';
@@ -30,13 +31,19 @@ import WardrobeChallengesScreen from './components/challenges/WardrobeChallenges
 import PersonalShopperScreen from './components/ai/PersonalShopperScreen';
 import SmartShoppingScreen from './components/shopping/SmartShoppingScreen';
 
+// Import new onboarding screens
+import OnboardingWizard from './components/onboarding/OnboardingWizard';
+import ProfileSettingsScreen from './components/profile/ProfileSettingsScreen';
+
 // Import contexts
-import { AppProvider } from './contexts/AppContext';
+import { AppProvider, useAppContext } from './contexts/AppContext';
 
 // Import constants
 import { OPENAI_API_KEY } from './utils/constants';
 
-const WhatToWearApp = () => {
+// Componente interno que tem acesso ao AppContext
+const AppContent = () => {
+  const { userProfile, isLoadingProfile } = useAppContext();
   const [user, setUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentScreen, setCurrentScreen] = useState('auth');
@@ -50,17 +57,39 @@ const WhatToWearApp = () => {
       
       if (user) {
         setUser(user);
-        setCurrentScreen('home');
+        // Não definimos o screen aqui - aguardamos o perfil carregar
       } else {
         setUser(null);
         setCurrentScreen('auth');
+        setIsLoading(false);
       }
-      
-      setIsLoading(false);
     });
 
     return () => unsubscribe();
   }, []);
+
+  // Effect para decidir o screen baseado no perfil carregado
+  useEffect(() => {
+    if (user && !isLoadingProfile) {
+      console.log('👤 User profile loaded:', userProfile);
+      
+      // Verifica se o onboarding foi completado
+      const hasCompletedOnboarding = userProfile?.onboardingCompleted === true;
+      
+      if (hasCompletedOnboarding) {
+        console.log('✅ Onboarding completed, going to home');
+        setCurrentScreen('home');
+      } else {
+        console.log('📋 Onboarding not completed, going to onboarding');
+        setCurrentScreen('onboarding');
+      }
+      
+      setIsLoading(false);
+    } else if (user && isLoadingProfile) {
+      // Utilizador logado mas perfil ainda a carregar
+      console.log('⏳ User logged in, waiting for profile to load...');
+    }
+  }, [user, userProfile, isLoadingProfile]);
 
   const navigateToScreen = (screen, data = null) => {
     console.log('🧭 Navigating to:', screen, data ? 'with data' : '');
@@ -73,6 +102,11 @@ const WhatToWearApp = () => {
       setIsTransitioning(false);
     }, 150);
   };
+
+  // Loading screen enquanto autentica ou carrega perfil
+  if (isLoading || (user && isLoadingProfile)) {
+    return <LoadingScreen />;
+  }
 
   // Screen renderer
   const renderScreen = () => {
@@ -89,15 +123,33 @@ const WhatToWearApp = () => {
     const commonProps = {
       navigateToScreen,
       screenData,
-      openaiApiKey: OPENAI_API_KEY // Adicionar a API key de volta para os componentes de análise
+      openaiApiKey: OPENAI_API_KEY
     };
 
     switch (currentScreen) {
       case 'auth':
-        return <AuthScreen onLoginSuccess={() => navigateToScreen('home')} />;
+        return <AuthScreen onLoginSuccess={() => {
+          // Não navegamos aqui - deixamos o useEffect decidir baseado no perfil
+          console.log('🔑 Login successful, waiting for profile check...');
+        }} />;
+      
+      case 'onboarding':
+        return (
+          <OnboardingWizard 
+            onComplete={() => {
+              console.log('✅ Onboarding completed, going to home');
+              navigateToScreen('home');
+            }}
+            navigateToScreen={navigateToScreen}
+          />
+        );
       
       case 'home':
         return <HomeScreen {...commonProps} />;
+      
+      // Profile settings
+      case 'profile-settings':
+        return <ProfileSettingsScreen {...commonProps} />;
       
       // Wardrobe Management
       case 'wardrobe':
@@ -123,7 +175,7 @@ const WhatToWearApp = () => {
       case 'recommendations':
         return <RecommendationsScreen {...commonProps} />;
       
-      // Analysis Features - ADICIONAR ESTES CASES EM FALTA
+      // Analysis Features
       case 'color-analysis':
         return <ColorAnalysisScreen {...commonProps} />;
       case 'body-shape-analysis':
@@ -144,8 +196,6 @@ const WhatToWearApp = () => {
         return <PersonalShopperScreen {...commonProps} />;
       case 'smart-shopping':
         return <SmartShoppingScreen {...commonProps} />;
-      
-      // AI Setup
       case 'ai-setup':
         return <AISetupScreen {...commonProps} />;
       
@@ -154,22 +204,14 @@ const WhatToWearApp = () => {
     }
   };
 
-  if (isLoading) {
-    return <LoadingScreen />;
-  }
+  return renderScreen();
+};
 
+// Componente principal que envolve com o AppProvider
+const WhatToWearApp = () => {
   return (
     <AppProvider>
-      <div className="app">
-        {renderScreen()}
-        
-        {/* AI Integration Status Bar (Development) */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="fixed bottom-4 right-4 bg-black text-white px-3 py-2 rounded-lg text-xs font-mono z-50">
-            AI: {OPENAI_API_KEY ? '✓ Configurada' : '❌ Não configurada'}
-          </div>
-        )}
-      </div>
+      <AppContent />
     </AppProvider>
   );
 };

@@ -1,3 +1,4 @@
+// src/components/auth/AuthScreen.js - Versão atualizada
 import React, { useState, useEffect } from 'react';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../../firebase';
@@ -26,10 +27,14 @@ const AuthScreen = ({ onLoginSuccess }) => {
     try {
       if (authMode === 'login') {
         await signInWithEmailAndPassword(auth, email, password);
+        console.log('✅ Login successful - App.js will handle navigation');
       } else {
         await createUserWithEmailAndPassword(auth, email, password);
+        console.log('✅ Registration successful - App.js will handle navigation');
       }
-      onLoginSuccess();
+      
+      // Não chamamos onLoginSuccess() aqui - deixamos o App.js gerir o fluxo
+      
     } catch (error) {
       console.error('Auth error:', error);
       setError(
