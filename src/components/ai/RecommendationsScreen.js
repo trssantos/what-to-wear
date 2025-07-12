@@ -3,9 +3,9 @@ import { ArrowLeft, ShoppingBag, Sparkles, Star } from 'lucide-react';
 import { useAppContext } from '../../contexts/AppContext';
 import { useOpenAI } from '../../hooks/useOpenAI';
 
-const RecommendationsScreen = ({ navigateToScreen, openaiApiKey }) => {
+const RecommendationsScreen = ({ navigateToScreen }) => {
   const { wardrobe } = useAppContext();
-  const { generateShoppingRecommendations } = useOpenAI(openaiApiKey);
+  const { generateShoppingRecommendations } = useOpenAI();
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [recommendations, setRecommendations] = useState(null);

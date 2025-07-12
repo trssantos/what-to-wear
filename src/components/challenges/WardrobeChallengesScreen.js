@@ -5,7 +5,7 @@ import { useOpenAI } from '../../hooks/useOpenAI';
 
 const WardrobeChallengesScreen = ({ navigateToScreen, openaiApiKey }) => {
   const { wardrobe, outfits, addOutfit } = useAppContext();
-  const { callOpenAI } = useOpenAI(openaiApiKey);
+  const { callOpenAI } = useOpenAI();
   
   const [activeChallenges, setActiveChallenges] = useState([]);
   const [completedChallenges, setCompletedChallenges] = useState([]);

@@ -2,11 +2,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Camera, Upload, Send, X } from 'lucide-react';
 import { useAppContext } from '../../contexts/AppContext';
 import { useOpenAI } from '../../hooks/useOpenAI';
+import { OPENAI_API_KEY } from '../../utils/constants';
 import CameraCapture from '../shared/CameraCapture';
 
-const StyleChatScreen = ({ navigateToScreen, openaiApiKey }) => {
+const StyleChatScreen = ({ navigateToScreen }) => {
   const { wardrobe } = useAppContext();
-  const { callOpenAI } = useOpenAI(openaiApiKey);
+  const { callOpenAI } = useOpenAI();
   
   const [messages, setMessages] = useState([
     {
@@ -157,7 +158,7 @@ INSTRUÇÕES IMPORTANTES:
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openaiApiKey}`
+          'Authorization': `Bearer ${OPENAI_API_KEY}`
         },
         body: JSON.stringify({
           model: hasImagesInConversation ? 'gpt-4o' : 'gpt-4o-mini',
@@ -233,98 +234,98 @@ INSTRUÇÕES IMPORTANTES:
                 <div
                   className={`max-w-[80%] p-4 rounded-2xl ${
                     message.type === 'user'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-white text-gray-800'
+                      ? 'bg-white text-gray-800'
+                      : 'bg-white/20 text-white backdrop-blur-sm'
                   }`}
                 >
                   {message.image && (
-                    <img 
-                      src={message.image} 
-                      alt="Outfit" 
-                      className="w-full rounded-lg mb-2 max-h-48 object-cover cursor-pointer hover:opacity-90 transition-opacity"
-                      onClick={() => handleImageClick(message.image)}
-                    />
+                    <div className="mb-3">
+                      <img
+                        src={message.image}
+                        alt="Outfit enviado"
+                        className="w-full h-40 object-cover rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
+                        onClick={() => handleImageClick(message.image)}
+                      />
+                    </div>
                   )}
-                  <div className="whitespace-pre-wrap text-sm leading-relaxed">
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
                     {message.content}
-                  </div>
-                  <div className={`text-xs mt-2 ${
-                    message.type === 'user' ? 'text-blue-100' : 'text-gray-500'
+                  </p>
+                  <p className={`text-xs mt-2 ${
+                    message.type === 'user' ? 'text-gray-500' : 'text-white/70'
                   }`}>
                     {message.timestamp.toLocaleTimeString('pt-PT', { 
                       hour: '2-digit', 
                       minute: '2-digit' 
                     })}
-                  </div>
+                  </p>
                 </div>
               </div>
             ))}
             
             {isLoading && (
               <div className="flex justify-start">
-                <div className="bg-white p-4 rounded-2xl">
-                  <div className="flex space-x-2">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                <div className="bg-white/20 text-white backdrop-blur-sm p-4 rounded-2xl">
+                  <div className="flex items-center space-x-2">
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                    <span className="text-sm">A analisar...</span>
                   </div>
                 </div>
               </div>
             )}
+            
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Image Preview */}
-          {selectedImage && (
-            <div className="mb-4">
-              <div className="bg-white p-3 rounded-lg flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <img src={selectedImage} alt="Preview" className="w-12 h-12 rounded object-cover" />
-                  <span className="text-sm text-gray-600">Imagem selecionada</span>
-                </div>
-                <button 
+          {/* Input Area */}
+          <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4">
+            {selectedImage && (
+              <div className="mb-3 relative">
+                <img
+                  src={selectedImage}
+                  alt="Imagem selecionada"
+                  className="w-16 h-16 object-cover rounded-xl"
+                />
+                <button
                   onClick={() => setSelectedImage(null)}
-                  className="text-red-500 text-sm"
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
                 >
-                  Remover
+                  <X className="h-3 w-3" />
                 </button>
               </div>
-            </div>
-          )}
-
-          {/* Input Area */}
-          <div className="bg-white rounded-2xl p-3 shadow-lg">
+            )}
+            
             <div className="flex items-end space-x-2">
               <button
                 onClick={() => setShowCamera(true)}
-                className="p-2 text-gray-500 hover:text-blue-500 transition-colors flex-shrink-0"
+                className="p-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors flex-shrink-0"
               >
-                <Camera className="h-6 w-6" />
+                <Camera className="h-5 w-5" />
               </button>
               
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2 text-gray-500 hover:text-green-500 transition-colors flex-shrink-0"
+                className="p-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors flex-shrink-0"
               >
-                <Upload className="h-6 w-6" />
+                <Upload className="h-5 w-5" />
               </button>
               
               <input
-                type="file"
                 ref={fileInputRef}
-                onChange={handleImageUpload}
+                type="file"
                 accept="image/*"
+                onChange={handleImageUpload}
                 className="hidden"
               />
               
               <textarea
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                placeholder="Faz uma pergunta ou envia uma foto..."
-                className="flex-1 resize-none border-none focus:outline-none text-sm min-h-[3rem] max-h-24 py-2"
-                rows="2"
-                style={{ lineHeight: '1.5' }}
-                onKeyPress={(e) => {
+                placeholder="Pergunta algo sobre moda ou envia uma foto..."
+                className="flex-1 bg-white/20 text-white placeholder-white/70 border-0 rounded-lg p-3 resize-none focus:ring-2 focus:ring-white/50 focus:outline-none"
+                rows="1"
+                style={{ minHeight: '44px', maxHeight: '120px' }}
+                onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
                     sendMessage();

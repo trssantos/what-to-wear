@@ -8,8 +8,9 @@ import {
 } from 'lucide-react';
 import { useAppContext } from '../../contexts/AppContext';
 import { useAuth } from '../../hooks/useAuth';
+import { OPENAI_API_KEY } from '../../utils/constants';
 
-const HomeScreenReorganized = ({ navigateToScreen, setShowApiSetup, openaiApiKey }) => {
+const HomeScreenReorganized = ({ navigateToScreen, setShowApiSetup }) => {
   const { wardrobe, outfits } = useAppContext();
   const { user, signOut } = useAuth();
   
@@ -317,7 +318,7 @@ const HomeScreenReorganized = ({ navigateToScreen, setShowApiSetup, openaiApiKey
                 key={index}
                 {...feature}
                 onClick={() => {
-                  if (!openaiApiKey && feature.screen !== 'wardrobe' && feature.screen !== 'outfits') {
+                  if (!OPENAI_API_KEY && feature.screen !== 'wardrobe' && feature.screen !== 'outfits') {
                     alert('Por favor configura a OpenAI API primeiro nas definições.');
                     return;
                   }

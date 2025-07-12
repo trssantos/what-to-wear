@@ -10,7 +10,7 @@ const AISetupScreen = ({ navigateToScreen }) => {
   const [testResult, setTestResult] = useState(null);
   const [isTesting, setIsTesting] = useState(false);
 
-  const { generateGarmentMetadata } = useGarmentAI(OPENAI_API_KEY);
+  const { generateGarmentMetadata } = useGarmentAI();
 
   React.useEffect(() => {
     const timer = setTimeout(() => setIsRevealed(true), 100);

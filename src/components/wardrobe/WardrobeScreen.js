@@ -37,8 +37,7 @@ const WardrobeScreen = ({ navigateToScreen }) => {
   });
 
   const handleItemClick = (item) => {
-    setSelectedItem(item);
-    navigateToScreen('item-detail');
+    navigateToScreen('item-detail', item);
   };
 
   const aiAnalyzedCount = wardrobe.filter(item => item.aiMetadata).length;

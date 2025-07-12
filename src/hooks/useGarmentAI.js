@@ -70,7 +70,7 @@ Cria uma descrição completa e técnica da peça que inclua:
 
 IMPORTANTE: Sê muito detalhado e técnico na análise. Esta informação será usada para catalogação digital e recomendações automáticas de combinações.
 
-Formato da resposta: Texto corrido, bem estruturado, com todas as observações técnicas relevantes.`;
+FORMATO DE RESPOSTA: Texto corrido descritivo, sem listas ou bullets. Máximo 800 palavras.`;
 
       const messages = [
         {
@@ -83,174 +83,83 @@ Formato da resposta: Texto corrido, bem estruturado, com todas as observações 
             {
               type: 'image_url',
               image_url: {
-                url: imageData,
-                detail: 'high'
+                url: imageData
               }
             }
           ]
         }
       ];
 
-      const analysis = await callOpenAI(messages, true);
+      console.log('🔄 Gerando metadata AI para peça:', itemInfo.name);
+      const metadata = await callOpenAI(messages, true); // true para incluir vision
       
-      // Add to analysis history
-      const historyEntry = {
+      // Adicionar à história de análises
+      const analysisEntry = {
         id: Date.now(),
+        itemName: itemInfo.name,
         timestamp: new Date().toISOString(),
-        itemInfo,
-        analysis,
-        imageData: imageData.substring(0, 100) + '...' // Store just a reference
+        metadata: metadata.substring(0, 200) + '...' // Preview
       };
       
-      setAnalysisHistory(prev => [historyEntry, ...prev.slice(0, 9)]); // Keep last 10
+      setAnalysisHistory(prev => [analysisEntry, ...prev.slice(0, 9)]); // Manter últimas 10
       
-      return analysis;
+      console.log('✅ Metadata AI gerada com sucesso');
+      return metadata;
       
     } catch (error) {
-      console.error('🔥 Garment AI Analysis Error:', error);
+      console.error('💥 Erro ao gerar metadata AI:', error);
       throw error;
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const generateStyleTags = async (imageData, description = '') => {
+  const analyzeOutfitCombination = async (selectedItems, occasion = null) => {
     if (!OPENAI_API_KEY) {
       throw new Error('API key da OpenAI não configurada no sistema');
     }
 
+    if (!selectedItems || selectedItems.length === 0) {
+      throw new Error('Seleciona pelo menos uma peça para análise');
+    }
+
+    setIsAnalyzing(true);
+    
     try {
-      const prompt = `Analisa esta peça de roupa e gera tags de estilo relevantes.
+      const itemDescriptions = selectedItems.map(item => 
+        `${item.name} (${item.category}, ${item.color}${item.brand ? ', ' + item.brand : ''})`
+      ).join(', ');
 
-${description ? `DESCRIÇÃO EXISTENTE: ${description}` : ''}
+      const prompt = `Como especialista em styling e moda, analisa esta combinação de roupas e fornece feedback detalhado:
 
-Com base na imagem, gera uma lista de tags que descrevam:
-- Estilo (casual, formal, boho, minimalist, etc.)
-- Ocasiões apropriadas (work, party, weekend, etc.)
-- Características visuais (striped, floral, solid, etc.)
-- Fit (oversized, fitted, loose, etc.)
-- Vibe (comfy, elegant, edgy, romantic, etc.)
+PEÇAS SELECIONADAS: ${itemDescriptions}
+OCASIÃO: ${occasion || 'Não especificada'}
 
-Responde apenas com uma lista de tags separadas por vírgulas, máximo 10 tags, em português.
-Exemplo: casual, confortável, fim-de-semana, algodão, básico, versátil`;
+Analisa a combinação considerando:
+1. **HARMONIA VISUAL**: Como as cores, padrões e texturas funcionam juntos
+2. **ADEQUAÇÃO**: Se a combinação é apropriada para a ocasião
+3. **ESTILO GERAL**: Que estilo esta combinação transmite
+4. **SUGESTÕES DE MELHORIA**: Peças que poderiam ser adicionadas ou trocadas
+5. **ACESSÓRIOS**: Que acessórios complementariam o look
+6. **DICAS DE STYLING**: Como usar as peças para potencializar o visual
 
-      const messages = [
-        {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: prompt
-            },
-            {
-              type: 'image_url',
-              image_url: {
-                url: imageData,
-                detail: 'low'
-              }
-            }
-          ]
-        }
-      ];
+Sê específico e construtivo no feedback.`;
 
-      const response = await callOpenAI(messages, true);
-      return response.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+      const analysis = await callOpenAI(prompt);
+      console.log('✅ Análise de combinação concluída');
+      return analysis;
       
     } catch (error) {
-      console.error('🏷️ Style Tags Generation Error:', error);
+      console.error('💥 Erro na análise de combinação:', error);
       throw error;
-    }
-  };
-
-  const suggestItemCombinations = async (targetItem, wardrobeItems) => {
-    if (!OPENAI_API_KEY) {
-      throw new Error('API key da OpenAI não configurada no sistema');
-    }
-
-    try {
-      const prompt = `Como especialista em styling, sugere combinações para esta peça específica:
-
-PEÇA PRINCIPAL:
-- Nome: ${targetItem.name}
-- Categoria: ${targetItem.category}
-- Cor: ${targetItem.color}
-- Estilo: ${targetItem.tags?.join(', ') || 'N/A'}
-${targetItem.aiMetadata ? `- Análise IA: ${targetItem.aiMetadata.substring(0, 200)}...` : ''}
-
-OUTRAS PEÇAS DISPONÍVEIS NO ARMÁRIO:
-${wardrobeItems.map(item => 
-  `- ${item.name} (${item.category}, ${item.color}) - ${item.tags?.join(', ') || 'básico'}`
-).join('\n')}
-
-Por favor, sugere 3-5 combinações específicas usando a peça principal com outras peças do armário.
-
-Para cada combinação, inclui:
-1. Peças específicas a usar
-2. Ocasião/contexto apropriado
-3. Uma frase sobre porquê funciona bem
-
-Formato:
-**Look 1 - [Nome do Look]**
-Peças: [lista das peças]
-Ocasião: [contexto]
-Porquê funciona: [explicação breve]
-
-Foca em combinações práticas e variadas!`;
-
-      const response = await callOpenAI(prompt);
-      return response;
-      
-    } catch (error) {
-      console.error('👔 Combination Suggestions Error:', error);
-      throw error;
-    }
-  };
-
-  const analyzeWardrobeGaps = async (wardrobeItems, userPreferences = {}) => {
-    if (!OPENAI_API_KEY) {
-      throw new Error('API key da OpenAI não configurada no sistema');
-    }
-
-    try {
-      const prompt = `Como consultor de guarda-roupa, analisa este armário e identifica lacunas/oportunidades:
-
-INVENTÁRIO ATUAL:
-${wardrobeItems.map(item => 
-  `- ${item.name} (${item.category}, ${item.color}) - ${item.condition || 'N/A'} - Tags: ${item.tags?.join(', ') || 'N/A'}`
-).join('\n')}
-
-ESTATÍSTICAS:
-- Total de peças: ${wardrobeItems.length}
-- Categorias: ${[...new Set(wardrobeItems.map(i => i.category))].join(', ')}
-- Cores principais: ${[...new Set(wardrobeItems.map(i => i.color))].slice(0, 5).join(', ')}
-
-PREFERÊNCIAS DO UTILIZADOR:
-${Object.entries(userPreferences).map(([k, v]) => `- ${k}: ${v}`).join('\n') || 'Não especificadas'}
-
-Por favor, fornece:
-
-1. **ANÁLISE GERAL**: Pontos fortes do guarda-roupa atual
-2. **LACUNAS IDENTIFICADAS**: Que peças/categorias estão em falta
-3. **OPORTUNIDADES**: Sugestões específicas de compras prioritárias
-4. **OTIMIZAÇÃO**: Como melhor usar o que já existe
-5. **ESTRATÉGIA**: Plano de médio prazo para o guarda-roupa
-
-Sê específico e prático nas recomendações!`;
-
-      const response = await callOpenAI(prompt);
-      return response;
-      
-    } catch (error) {
-      console.error('📊 Wardrobe Analysis Error:', error);
-      throw error;
+    } finally {
+      setIsAnalyzing(false);
     }
   };
 
   return {
     generateGarmentMetadata,
-    generateStyleTags,
-    suggestItemCombinations,
-    analyzeWardrobeGaps,
+    analyzeOutfitCombination,
     isAnalyzing,
     analysisHistory
   };

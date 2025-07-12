@@ -101,7 +101,7 @@ const WhatToWearApp = () => {
       case 'outfit-detail':
         return <OutfitDetailScreen {...commonProps} />;
       
-      // AI Features
+      // AI Features - Removidas as props openaiApiKey
       case 'outfit-quiz':
         return <OutfitQuizScreen {...commonProps} />;
       case 'style-chat':
