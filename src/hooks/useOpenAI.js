@@ -1,7 +1,9 @@
-export const useOpenAI = (apiKey) => {
+import { OPENAI_API_KEY } from '../utils/constants';
+
+export const useOpenAI = () => {
     const callOpenAI = async (messages, includeVision = false) => {
-      if (!apiKey) {
-        throw new Error('API key da OpenAI não configurada');
+      if (!OPENAI_API_KEY) {
+        throw new Error('API key da OpenAI não configurada no sistema');
       }
   
       try {
@@ -21,7 +23,7 @@ export const useOpenAI = (apiKey) => {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${apiKey}`
+            'Authorization': `Bearer ${OPENAI_API_KEY}`
           },
           body: JSON.stringify({
             model: includeVision ? 'gpt-4o' : 'gpt-4o-mini',
@@ -70,80 +72,101 @@ export const useOpenAI = (apiKey) => {
   1. OUTFIT ESPECÍFICO: Peças exatas do armário ou sugestões específicas
   2. JUSTIFICAÇÃO: Porquê esta escolha é perfeita para a situação
   3. DICAS EXTRAS: 3-4 dicas específicas para esta situação
-  4. ALTERNATIVAS: Se alguma peça não estiver disponível
+  4. ALTERNATIVAS: 1-2 variações do look principal
   
-  Foca na adequação à situação específica e no contexto social/profissional mencionado.`;
+  Responde de forma clara e prática, focando nas peças disponíveis no armário.`;
       } else {
-        prompt = `Como consultor de moda expert, cria uma recomendação de outfit para:
+        // Guided mode with structured data
+        const { occasion, weather, mood, timeOfDay, colors, formality } = data;
+        
+        prompt = `Como consultor de moda expert, cria uma recomendação de outfit baseada nestas especificações:
   
-  OCASIÃO: ${data.occasion}
-  TEMPO: ${data.weather}
-  ESTILO DESEJADO: ${data.style}
-  CONTEXTO: ${data.context}
+  CRITÉRIOS:
+  - Ocasião: ${occasion}
+  - Tempo/Clima: ${weather}
+  - Humor/Estilo: ${mood}
+  - Período do dia: ${timeOfDay}
+  - Cores preferidas: ${colors?.join(', ') || 'Nenhuma preferência'}
+  - Nível de formalidade: ${formality}
   
   ARMÁRIO DISPONÍVEL:
   ${wardrobe.map(item => `- ${item.name} (${item.category}, ${item.color}${item.brand ? ', ' + item.brand : ''}) - Tags: ${item.tags?.join(', ') || 'N/A'}`).join('\n')}
   
-  Fornece:
-  1. OUTFIT RECOMENDADO: Usando peças do armário ou sugestões específicas
-  2. JUSTIFICAÇÃO: Porquê funciona para esta ocasião
-  3. DICAS EXTRAS: Para maximizar o impacto
-  4. ALTERNATIVAS: Opções de backup`;
+  Por favor, cria uma recomendação que inclua:
+  1. OUTFIT PRINCIPAL: Peças específicas do armário que combinam perfeitamente
+  2. JUSTIFICAÇÃO: Porque esta combinação funciona para os critérios dados
+  3. STYLING TIPS: Como usar/combinar as peças (dobrar mangas, meter por dentro, etc.)
+  4. ACESSÓRIOS: Sugestões que complementem o look
+  5. ALTERNATIVAS: 1-2 variações usando outras peças do armário
+  
+  Foca nas peças que realmente existem no armário!`;
       }
   
-      return await callOpenAI([
-        {
-          role: 'system',
-          content: 'És um consultor de moda expert com conhecimento profundo de estilo, cores, ocasiões e adequação social. Dás conselhos práticos e específicos.'
-        },
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]);
+      return await callOpenAI(prompt);
     };
   
-    const generateShoppingRecommendations = async (wardrobe) => {
-      const prompt = `Como consultor de moda expert, analisa este armário e fornece recomendações personalizadas:
+    const generateStyleAdvice = async (question, userContext = {}) => {
+      const { wardrobe = [], recentOutfits = [], preferences = {} } = userContext;
+      
+      const prompt = `Como especialista em moda e styling pessoal, responde a esta pergunta:
   
-  ARMÁRIO ATUAL:
-  ${wardrobe.map(item => `- ${item.name} (${item.category}, ${item.color}${item.brand ? ', ' + item.brand : ''}) - Tags: ${item.tags?.join(', ') || 'N/A'} - ${item.notes || 'Sem notas'}`).join('\n')}
+  PERGUNTA: "${question}"
   
-  Fornece:
+  CONTEXTO DO UTILIZADOR:
+  - Peças no armário: ${wardrobe.length} itens
+  - Outfits recentes: ${recentOutfits.length}
+  - Preferências: ${Object.entries(preferences).map(([k, v]) => `${k}: ${v}`).join(', ') || 'Não especificadas'}
   
-  1. **GAPS NO ARMÁRIO**: Que peças essenciais estão em falta?
+  ${wardrobe.length > 0 ? `
+  ALGUMAS PEÇAS DISPONÍVEIS:
+  ${wardrobe.slice(0, 10).map(item => `- ${item.name} (${item.category}, ${item.color})`).join('\n')}
+  ${wardrobe.length > 10 ? `... e mais ${wardrobe.length - 10} peças` : ''}
+  ` : ''}
   
-  2. **RECOMENDAÇÕES DE COMPRA** (máximo 5 peças):
-  Para cada peça:
-  - Nome específico
-  - Justificação (porquê é importante)
-  - Prioridade (Alta/Média/Baixa)
-  - Faixa de preço estimada em euros
-  - Onde comprar (tipo de loja)
+  Por favor, fornece conselhos práticos e personalizados, considerando as peças que a pessoa tem disponíveis.
+  Sê específico, útil e inspirador. Se relevante, sugere combinações ou menciona tendências atuais.`;
   
-  3. **NOVAS COMBINAÇÕES**: 6-8 combinações criativas usando peças existentes
+      return await callOpenAI(prompt);
+    };
   
-  4. **DICAS DE STYLING**: Conselhos para maximizar o armário atual
-  
-  5. **INVESTIMENTOS A LONGO PRAZO**: 2-3 peças de qualidade para investir
-  
-  Foca em versatilidade, qualidade e adequação ao estilo pessoal evidenciado pelas peças atuais.`;
-  
-      return await callOpenAI([
-        {
-          role: 'system',
-          content: 'És um consultor de moda expert e personal shopper. Dás conselhos práticos, específicos e adequados ao orçamento. Conheces bem marcas europeias e portuguesas.'
-        },
+    const analyzeOutfitPhoto = async (imageBase64, context = '') => {
+      const messages = [
         {
           role: 'user',
-          content: prompt
+          content: [
+            {
+              type: 'text',
+              text: `Como especialista em moda, analisa este outfit e fornece feedback construtivo:
+              
+              ${context ? `CONTEXTO: ${context}` : ''}
+              
+              Por favor, comenta sobre:
+              1. COMBINAÇÃO: Como as peças funcionam juntas
+              2. FIT: Como as roupas assentam
+              3. CORES: Harmonia e contraste
+              4. ESTILO: Adequação ao contexto/ocasião
+              5. SUGESTÕES: Melhorias ou alternativas
+              
+              Sê honesto mas encorajador, focando em dicas práticas.`
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: imageBase64,
+                detail: 'high'
+              }
+            }
+          ]
         }
-      ]);
+      ];
+  
+      return await callOpenAI(messages, true);
     };
   
     return {
       callOpenAI,
       generateOutfitRecommendation,
-      generateShoppingRecommendations
+      generateStyleAdvice,
+      analyzeOutfitPhoto
     };
   };

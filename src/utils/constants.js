@@ -120,9 +120,8 @@ export const VALIDATION_RULES = {
   maxOutfitNameLength: 50
 };
 
-// Cache keys para localStorage
+// Cache keys para localStorage (removida a chave da API)
 export const STORAGE_KEYS = {
-  apiKey: 'whatToWear_openai_key',
   userPreferences: 'whatToWear_preferences',
   onboardingComplete: 'whatToWear_onboarding'
 };
