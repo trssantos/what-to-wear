@@ -6,7 +6,7 @@ import { OPENAI_API_KEY } from '../../utils/constants';
 import CameraCapture from '../shared/CameraCapture';
 import { CLOTHING_CATEGORIES, COMMON_COLORS, AVAILABLE_TAGS, CONDITION_OPTIONS } from '../../utils/constants';
 
-const AddItemScreen = ({ navigateToScreen }) => {
+const AddItemScreen = ({ navigateToScreen, screenData }) => {
   const { addWardrobeItem } = useAppContext();
   const { generateGarmentMetadata } = useGarmentAI();
   
@@ -33,6 +33,28 @@ const AddItemScreen = ({ navigateToScreen }) => {
     const timer = setTimeout(() => setIsRevealed(true), 100);
     return () => clearTimeout(timer);
   }, []);
+
+  // ✨ NOVO: Pré-preencher com dados da análise rápida
+  React.useEffect(() => {
+    if (screenData?.fromQuickAnalysis && screenData?.smartData) {
+      console.log('🚀 Preenchendo dados da análise rápida:', screenData.smartData);
+      
+      setNewItem(prev => ({
+        ...prev,
+        imageUrl: screenData.imageUrl || prev.imageUrl,
+        name: screenData.smartData.name || prev.name,
+        category: screenData.smartData.category || prev.category,
+        color: screenData.smartData.color || prev.color,
+        tags: screenData.smartData.tags || prev.tags,
+        notes: 'Adicionada via Análise Rápida - Recomendação AI'
+      }));
+      
+      // Se não tem metadata AI ainda, gerar automaticamente
+      if (screenData.imageUrl && !screenData.smartData.aiMetadata && OPENAI_API_KEY) {
+        generateAIMetadata(screenData.imageUrl);
+      }
+    }
+  }, [screenData]);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -111,6 +133,12 @@ const AddItemScreen = ({ navigateToScreen }) => {
       await addWardrobeItem(itemToSave);
       
       console.log('✅ Peça guardada com sucesso');
+      
+      // Se veio da análise rápida, mostrar mensagem específica
+      if (screenData?.fromQuickAnalysis) {
+        alert('✨ Peça adicionada com sucesso baseada na análise rápida!');
+      }
+      
       navigateToScreen('wardrobe');
       
     } catch (error) {
@@ -140,14 +168,34 @@ const AddItemScreen = ({ navigateToScreen }) => {
         <div className="flex items-center justify-between mb-8 pt-8">
           <div className="flex items-center">
             <button 
-              onClick={() => navigateToScreen('wardrobe')}
+              onClick={() => navigateToScreen(screenData?.fromQuickAnalysis ? 'quick-analysis' : 'wardrobe')}
               className="mr-4 p-3 bg-white bg-opacity-20 rounded-2xl text-white hover:bg-opacity-30 transition-all"
             >
               <ArrowLeft className="h-6 w-6" />
             </button>
-            <h1 className="text-3xl font-black text-white">Nova Peça</h1>
+            <div>
+              <h1 className="text-3xl font-black text-white">
+                {screenData?.fromQuickAnalysis ? 'Adicionar Smart' : 'Nova Peça'}
+              </h1>
+              {screenData?.fromQuickAnalysis && (
+                <p className="text-white/80 text-sm">Dados preenchidos pela análise IA</p>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Notification para Smart Add */}
+        {screenData?.fromQuickAnalysis && (
+          <div className="mb-6 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-2xl p-4 text-white">
+            <div className="flex items-center space-x-2 mb-2">
+              <Sparkles className="h-5 w-5" />
+              <span className="font-bold">Adicionar Inteligente</span>
+            </div>
+            <p className="text-white/90 text-sm">
+              Dados extraídos automaticamente da análise. Confirma e ajusta se necessário.
+            </p>
+          </div>
+        )}
 
         {/* Form */}
         <div className="space-y-6">
@@ -157,6 +205,11 @@ const AddItemScreen = ({ navigateToScreen }) => {
             <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
               <Camera className="h-5 w-5 text-orange-600" />
               <span>Foto da Peça</span>
+              {screenData?.fromQuickAnalysis && (
+                <span className="ml-auto text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+                  Auto-preenchida
+                </span>
+              )}
             </h3>
             
             {newItem.imageUrl ? (
@@ -188,7 +241,7 @@ const AddItemScreen = ({ navigateToScreen }) => {
                           <span className="text-sm font-bold">Análise IA concluída ✓</span>
                         </div>
                       </div>
-                    ) : (
+                    ) : !screenData?.fromQuickAnalysis && (
                       <button
                         onClick={() => generateAIMetadata(newItem.imageUrl)}
                         className="w-full bg-purple-100 text-purple-700 p-3 rounded-xl font-bold flex items-center justify-center space-x-2 hover:bg-purple-200 transition-colors"
@@ -377,7 +430,7 @@ const AddItemScreen = ({ navigateToScreen }) => {
             ) : (
               <>
                 <Save className="h-5 w-5" />
-                <span>Guardar Peça</span>
+                <span>{screenData?.fromQuickAnalysis ? 'Confirmar & Adicionar' : 'Guardar Peça'}</span>
               </>
             )}
           </button>

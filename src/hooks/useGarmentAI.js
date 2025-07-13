@@ -148,9 +148,162 @@ Sê específico e construtivo no feedback.`;
     }
   };
 
+  // NOVA FUNÇÃO: Análise rápida contextual
+  const performQuickAnalysis = async (imageData, wardrobe, outfits, userProfile) => {
+    if (!OPENAI_API_KEY) {
+      throw new Error('API key da OpenAI não configurada no sistema');
+    }
+
+    if (!imageData) {
+      throw new Error('Imagem da peça é obrigatória para análise');
+    }
+
+    setIsAnalyzing(true);
+    
+    try {
+      const prompt = `Como personal shopper expert e analista de moda, realiza uma análise COMPLETA desta peça de roupa considerando TODO o contexto do armário do utilizador.
+
+ARMÁRIO ATUAL (${wardrobe.length} peças com descrições AI):
+${wardrobe.map((item, index) => 
+  `${index + 1}. ${item.name} (${item.category}, ${item.color}${item.brand ? ', ' + item.brand : ''})${item.aiMetadata ? ' - AI: ' + item.aiMetadata.substring(0, 100) + '...' : ''}`
+).join('\n')}
+
+OUTFITS EXISTENTES (${outfits.length}):
+${outfits.map((outfit, index) => 
+  `${index + 1}. ${outfit.name} (${outfit.occasion || 'casual'}) - Peças: ${outfit.pieces ? Object.values(outfit.pieces).filter(Boolean).join(', ') : 'N/A'}`
+).join('\n')}
+
+PERFIL DO UTILIZADOR:
+- Estação de cor: ${userProfile?.colorSeason || 'Não analisado'}
+- Body shape: ${userProfile?.bodyShape || 'Não analisado'}
+- Última análise: ${userProfile?.analyzedAt || 'N/A'}
+
+ANÁLISE COMPLETA REQUERIDA:
+
+1. **IDENTIFICAÇÃO DA PEÇA**
+   - Descrição detalhada da peça na imagem
+   - Categoria, cor, estilo, material aparente
+
+2. **SCORE DE AQUISIÇÃO (1-10)**
+   - Avaliação geral se vale a pena comprar
+   - Justificação do score
+
+3. **ANÁLISE DE COMPATIBILIDADE**
+   - Compatibilidade com estação de cor (se disponível)
+   - Adequação ao body shape (se disponível)
+   - Se preenche gap no armário ou é redundante
+
+4. **POTENCIAL DE OUTFITS**
+   - Quantos outfits novos poderia criar
+   - Peças específicas do armário que combinam
+   - Novos estilos/ocasiões que permitiria
+
+5. **COMBINA COM (específico)**
+   - Lista de 5-8 peças ESPECÍFICAS do armário que combinam perfeitamente
+   - Tipo de look que cada combinação criaria
+
+6. **ANÁLISE DE VALOR**
+   - Se é investimento inteligente vs impulso
+   - Versatilidade da peça
+   - ROI estimado (quantas vezes usaria)
+
+7. **DECISÃO FINAL**
+   - COMPRAR ou NÃO COMPRAR
+   - 3 razões principais para a decisão
+   - Alternativa se for "NÃO COMPRAR"
+
+FORMATO: Sê específico, directo e actionable. Usa nomes exactos das peças do armário. Considera o perfil completo do utilizador.`;
+
+      const messages = [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: prompt
+            },
+            {
+              type: 'image_url',
+              image_url: {
+                url: imageData
+              }
+            }
+          ]
+        }
+      ];
+
+      console.log('🔄 Iniciando análise rápida contextual...');
+      const analysis = await callOpenAI(messages, true);
+      
+      // Adicionar à história de análises
+      const analysisEntry = {
+        id: Date.now(),
+        type: 'quick-analysis',
+        timestamp: new Date().toISOString(),
+        wardrobeCount: wardrobe.length,
+        outfitCount: outfits.length,
+        preview: 'Análise rápida de nova peça'
+      };
+      
+      setAnalysisHistory(prev => [analysisEntry, ...prev.slice(0, 9)]);
+      
+      console.log('✅ Análise rápida contextual concluída');
+      return analysis;
+      
+    } catch (error) {
+      console.error('💥 Erro na análise rápida:', error);
+      throw error;
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Função para analisar compatibilidade de múltiplas peças de uma vez
+  const batchAnalyzeCompatibility = async (items, userProfile) => {
+    if (!OPENAI_API_KEY) {
+      throw new Error('API key da OpenAI não configurada no sistema');
+    }
+
+    setIsAnalyzing(true);
+    
+    try {
+      const prompt = `Como especialista em análise de compatibilidade de moda, avalia cada peça individualmente considerando o perfil do utilizador.
+
+PERFIL DO UTILIZADOR:
+- Estação de cor: ${userProfile?.colorSeason || 'Não analisado'}
+- Body shape: ${userProfile?.bodyShape || 'Não analisado'}
+
+PEÇAS PARA ANÁLISE:
+${items.map((item, index) => 
+  `${index + 1}. ${item.name} (${item.category}, ${item.color}${item.brand ? ', ' + item.brand : ''})${item.aiMetadata ? ' - ' + item.aiMetadata.substring(0, 100) + '...' : ''}`
+).join('\n')}
+
+Para cada peça, fornece:
+1. **SCORE (1-10)** - baseado na compatibilidade geral
+2. **COMPATIBILIDADE COR** - se harmoniza com a estação de cor
+3. **COMPATIBILIDADE CORPO** - se favorece o body shape
+4. **VERSATILIDADE** - quantos looks diferentes permite
+5. **RECOMENDAÇÃO** - manter, otimizar uso, ou considerar substituir
+
+Responde de forma estruturada para cada peça.`;
+
+      const analysis = await callOpenAI(prompt);
+      console.log('✅ Análise batch de compatibilidade concluída');
+      return analysis;
+      
+    } catch (error) {
+      console.error('💥 Erro na análise batch:', error);
+      throw error;
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
   return {
     generateGarmentMetadata,
     analyzeOutfitCombination,
+    performQuickAnalysis, // NOVA FUNÇÃO
+    batchAnalyzeCompatibility,
     isAnalyzing,
     analysisHistory
   };

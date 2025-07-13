@@ -35,6 +35,8 @@ import SmartShoppingScreen from './components/shopping/SmartShoppingScreen';
 import OnboardingWizard from './components/onboarding/OnboardingWizard';
 import ProfileSettingsScreen from './components/profile/ProfileSettingsScreen';
 
+import QuickAnalysisScreen from './components/analysis/QuickAnalysisScreen';
+
 // Import contexts
 import { AppProvider, useAppContext } from './contexts/AppContext';
 
@@ -174,6 +176,8 @@ const AppContent = () => {
         return <StyleChatScreen {...commonProps} />;
       case 'recommendations':
         return <RecommendationsScreen {...commonProps} />;
+        case 'quick-analysis': 
+        return <QuickAnalysisScreen {...commonProps} />;
       
       // Analysis Features
       case 'color-analysis':

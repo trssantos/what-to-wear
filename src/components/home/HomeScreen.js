@@ -1,4 +1,4 @@
-// src/components/home/HomeScreen.js - Versão atualizada
+// src/components/home/HomeScreen.js - Versão completa atualizada
 import React, { useState, useEffect } from 'react';
 import { 
   User, Settings, LogOut, Shirt, Sparkles, Camera, 
@@ -66,6 +66,13 @@ const HomeScreenReorganized = ({ navigateToScreen, setShowApiSetup }) => {
           subtitle: "Combina peças rapidamente",
           screen: "create-outfit",
           gradient: "from-orange-500 to-red-500"
+        },
+        {
+          icon: <Target className="h-6 w-6" />,
+          title: "Análise Rápida",
+          subtitle: "Vale a pena comprar esta peça?",
+          screen: "quick-analysis",
+          gradient: "from-purple-600 to-indigo-600"
         },
         {
           icon: <MessageCircle className="h-6 w-6" />,
@@ -177,65 +184,69 @@ const HomeScreenReorganized = ({ navigateToScreen, setShowApiSetup }) => {
     'planning': {
       name: 'Planeamento',
       icon: <Calendar className="h-5 w-5" />,
-      color: 'from-indigo-500 to-purple-500',
+      color: 'from-orange-500 to-red-500',
       features: [
         {
           icon: <Calendar className="h-6 w-6" />,
-          title: "Planeador de Outfits",
-          subtitle: "Planeia os teus looks semanais",
-          screen: "outfit-planner",
+          title: "Calendário de Looks",
+          subtitle: "Planeia outfits com antecedência",
+          screen: "outfit-calendar",
           gradient: "from-blue-500 to-indigo-500"
         },
         {
           icon: <Briefcase className="h-6 w-6" />,
-          title: "Armário Profissional",
-          subtitle: "Gestão especializada para o trabalho",
-          screen: "professional-wardrobe",
-          gradient: "from-gray-600 to-gray-800"
+          title: "Outfits Profissionais",
+          subtitle: "Looks para trabalho e reuniões",
+          screen: "business-outfits",
+          gradient: "from-gray-500 to-blue-500"
         },
         {
           icon: <PartyPopper className="h-6 w-6" />,
-          title: "Planeador de Eventos",
-          subtitle: "Outfits para ocasiões especiais",
-          screen: "event-planner",
-          gradient: "from-purple-500 to-pink-500"
+          title: "Eventos Especiais",
+          subtitle: "Preparação para ocasiões importantes",
+          screen: "special-events",
+          gradient: "from-pink-500 to-purple-500"
         }
       ]
     },
     'shopping': {
-      name: 'Shopping & Beleza',
+      name: 'Shopping',
       icon: <ShoppingBag className="h-5 w-5" />,
-      color: 'from-orange-500 to-red-500',
+      color: 'from-green-500 to-emerald-500',
       features: [
         {
-          icon: <Store className="h-6 w-6" />,
+          icon: <ShoppingBag className="h-6 w-6" />,
           title: "Lista de Compras Inteligente",
-          subtitle: "Shopping com IA e budget tracking",
+          subtitle: "O que comprar baseado no armário",
           screen: "smart-shopping",
-          gradient: "from-green-500 to-teal-500"
+          gradient: "from-green-500 to-emerald-500"
         },
         {
-          icon: <Palette className="h-6 w-6" />,
-          title: "Integração Beauty",
-          subtitle: "Maquilhagem, cabelo e unhas",
-          screen: "beauty-integration",
-          gradient: "from-pink-500 to-rose-500"
+          icon: <Store className="h-6 w-6" />,
+          title: "Wishlist & Favoritos",
+          subtitle: "Guarda peças que queres comprar",
+          screen: "wishlist",
+          gradient: "from-purple-500 to-pink-500"
+        },
+        {
+          icon: <TrendingUp className="h-6 w-6" />,
+          title: "Trends & Novidades",
+          subtitle: "Últimas tendências da moda",
+          screen: "fashion-trends",
+          gradient: "from-orange-500 to-red-500"
         }
       ]
     }
   };
 
   const getAllFeatures = () => {
-    const allFeatures = [];
-    Object.values(featureCategories).forEach(category => {
-      category.features.forEach(feature => {
-        allFeatures.push({
-          ...feature,
-          category: category.name
-        });
-      });
-    });
-    return allFeatures;
+    return Object.keys(featureCategories).reduce((acc, category) => {
+      const featuresWithCategory = featureCategories[category].features.map(feature => ({
+        ...feature,
+        category: featureCategories[category].name
+      }));
+      return [...acc, ...featuresWithCategory];
+    }, []);
   };
 
   const filteredFeatures = searchTerm 
@@ -306,45 +317,42 @@ const HomeScreenReorganized = ({ navigateToScreen, setShowApiSetup }) => {
                   Olá, {getUserName()}!
                 </h2>
                 <p className="text-white/80 text-xs">
-                  {wardrobe.length} peças • {outfits.length} outfits
+                  {OPENAI_API_KEY ? 'IA ativada' : 'Configure a IA'}
                 </p>
               </div>
             </div>
             
-            {/* Profile Menu */}
             <div className="relative">
               <button
                 onClick={handleProfileMenuClick}
-                className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
               >
-                <Settings className="h-5 w-5 text-white" />
+                <Settings className="h-4 w-4 text-white" />
               </button>
               
               {showProfileMenu && (
-                <div className="absolute right-0 top-12 bg-white rounded-2xl shadow-xl py-2 w-56 z-50 border border-gray-200">
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
                   <button
                     onClick={(e) => handleMenuOptionClick('profile-settings', e)}
-                    className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center space-x-3 transition-colors"
+                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                   >
-                    <Edit3 className="h-4 w-4 text-gray-600 flex-shrink-0" />
-                    <div>
-                      <div className="font-medium text-gray-800">Configurações do Perfil</div>
-                      <div className="text-xs text-gray-500">Editar preferências pessoais</div>
-                    </div>
+                    <User className="h-4 w-4 mr-2" />
+                    Perfil & Configurações
                   </button>
-                  
-                  <div className="border-t border-gray-100 my-1"></div>
-                  
-                 
+                  <button
+                    onClick={(e) => handleMenuOptionClick('ai-settings', e)}
+                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                  >
+                    <Bot className="h-4 w-4 mr-2" />
+                    Configurar IA
+                  </button>
+                  <hr className="my-1" />
                   <button
                     onClick={(e) => handleMenuOptionClick('logout', e)}
-                    className="w-full px-4 py-3 text-left hover:bg-red-50 flex items-center space-x-3 text-red-600 transition-colors"
+                    className="flex items-center px-4 py-2 text-sm text-red-700 hover:bg-red-50 w-full text-left"
                   >
-                    <LogOut className="h-4 w-4 flex-shrink-0" />
-                    <div>
-                      <div className="font-medium">Sair</div>
-                      <div className="text-xs opacity-75">Terminar sessão</div>
-                    </div>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Terminar Sessão
                   </button>
                 </div>
               )}
@@ -356,21 +364,20 @@ const HomeScreenReorganized = ({ navigateToScreen, setShowApiSetup }) => {
       {/* Search Bar */}
       <div className="max-w-md mx-auto px-4 py-4">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
           <input
             type="text"
-            placeholder="Procurar funcionalidades..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-white/90 backdrop-blur-sm rounded-2xl border border-white/20 focus:outline-none focus:ring-2 focus:ring-white/50 placeholder-gray-500"
+            placeholder="Procurar funcionalidades..."
+            className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/20 backdrop-blur-sm border-0 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
           />
         </div>
       </div>
 
-
-      {/* Features Grid */}
-      <div className="max-w-md mx-auto px-4 pb-4">
-        <div className="space-y-3">
+      {/* Tab Content */}
+      <div className="max-w-md mx-auto px-4">
+        <div className="space-y-3 mb-6">
           {filteredFeatures.length > 0 ? (
             filteredFeatures.map((feature, index) => (
               <FeatureCard
