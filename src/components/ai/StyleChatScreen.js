@@ -6,7 +6,7 @@ import { OPENAI_API_KEY } from '../../utils/constants';
 import CameraCapture from '../shared/CameraCapture';
 
 const StyleChatScreen = ({ navigateToScreen }) => {
-  const { wardrobe } = useAppContext();
+  const { wardrobe, userProfile } = useAppContext();
   const { callOpenAI } = useOpenAI();
   
   const [messages, setMessages] = useState([

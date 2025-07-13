@@ -60,7 +60,7 @@ const PersonalShopperScreen = ({ navigateToScreen, openaiApiKey }) => {
     };
   
     setMessages(prev => [...prev, newMessage]);
-    setIsTyping(true);
+    setIsLoading(true);
   
     try {
       // Contexto do gênero
@@ -180,7 +180,7 @@ const PersonalShopperScreen = ({ navigateToScreen, openaiApiKey }) => {
       setMessages(prev => [...prev, errorMessage]);
     }
     
-    setIsTyping(false);
+    setIsLoading(false);
   };
 
   const generateContextualSuggestions = async (userMessage, aiResponse) => {

@@ -477,10 +477,20 @@ Responde em formato de consulta profissional, como se fosses um stylist real a a
         }
       ]);
   
-      setConsultationResult(response);
+      setConsultation({
+        service: stylistServices.find(s => s.id === activeService),
+        content: response,
+        recommendations: extractRecommendations(response),
+        timestamp: new Date()
+      });
     } catch (error) {
       console.error('Error in consultation:', error);
-      setConsultationResult('Erro na consultoria. Tenta novamente.');
+      setConsultation({
+        service: stylistServices.find(s => s.id === activeService),
+        content: 'Erro na consultoria. Tenta novamente.',
+        recommendations: [],
+        timestamp: new Date()
+      });
     }
     setIsGenerating(false);
   };
