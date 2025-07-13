@@ -17,7 +17,7 @@ const ItemDetailScreen = ({ navigateToScreen, screenData }) => {
   const [editedItem, setEditedItem] = useState(selectedItem || {});
   const [customMetadata, setCustomMetadata] = useState(selectedItem?.aiMetadata || '');
   
-  // ✅ CORRIGIDO: Estados da modal
+  // ✅ EXATAMENTE IGUAL AO STYLECHATSCREEN
   const [showImageModal, setShowImageModal] = useState(false);
   const [modalImage, setModalImage] = useState(null);
 
@@ -30,116 +30,98 @@ const ItemDetailScreen = ({ navigateToScreen, screenData }) => {
     }
   }, [selectedItem]);
 
-  // ✅ CORRIGIDO: Função para abrir modal
+  // ✅ EXATAMENTE IGUAL AO STYLECHATSCREEN
   const handleImageClick = (imageUrl) => {
-    console.log('🖼️ Clicou na imagem:', imageUrl); // Debug
     setModalImage(imageUrl);
     setShowImageModal(true);
   };
 
-  // ✅ CORRIGIDO: Função para fechar modal
-  const closeModal = () => {
-    setShowImageModal(false);
-    setModalImage(null);
+  const handleSave = async () => {
+    try {
+      const updatedItem = {
+        ...editedItem,
+        aiMetadata: customMetadata
+      };
+      
+      await updateWardrobeItem(editedItem.id, updatedItem);
+      setIsEditing(false);
+      setIsEditingMetadata(false);
+      
+      // Atualizar item local
+      Object.assign(selectedItem, updatedItem);
+    } catch (error) {
+      console.error('Erro ao guardar item:', error);
+      alert('Erro ao guardar alterações');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm('Tens a certeza que queres eliminar esta peça? Esta ação não pode ser desfeita.')) {
+      try {
+        await deleteWardrobeItem(selectedItem.id);
+        navigateToScreen('wardrobe');
+      } catch (error) {
+        console.error('Erro ao eliminar item:', error);
+        alert('Erro ao eliminar peça');
+      }
+    }
+  };
+
+  const handleGenerateMetadata = async () => {
+    if (!OPENAI_API_KEY) {
+      alert('API Key do OpenAI não configurada');
+      return;
+    }
+
+    setIsGeneratingMetadata(true);
+    try {
+      const metadata = await generateGarmentMetadata(selectedItem);
+      setCustomMetadata(metadata);
+      setIsEditingMetadata(true);
+    } catch (error) {
+      console.error('Erro ao gerar metadados:', error);
+      alert('Erro ao gerar análise AI. Tenta novamente.');
+    } finally {
+      setIsGeneratingMetadata(false);
+    }
   };
 
   if (!selectedItem) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-600 p-6 pb-24">
         <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
-          <div className="bg-white rounded-2xl p-8 shadow-xl text-center">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Peça não encontrada</h2>
-            <p className="text-gray-600 mb-6">A peça que procuras não foi encontrada.</p>
-            <button
-              onClick={() => navigateToScreen('wardrobe')}
-              className="bg-orange-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-orange-600 transition-colors"
-            >
-              Voltar ao Guarda-Roupa
-            </button>
+          <div className="text-center">
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl">
+              <h2 className="text-2xl font-bold text-gray-800 mb-4">Peça não encontrada</h2>
+              <p className="text-gray-600 mb-6">A peça que procuras não foi encontrada.</p>
+              <button
+                onClick={() => navigateToScreen('wardrobe')}
+                className="bg-orange-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-orange-600 transition-colors"
+              >
+                Voltar ao Armário
+              </button>
+            </div>
           </div>
         </div>
-        
-        <BottomNavigation 
-          currentScreen="item-detail" 
-          navigateToScreen={navigateToScreen}
-        />
+        <BottomNavigation currentScreen="item-detail" navigateToScreen={navigateToScreen} />
       </div>
     );
   }
 
-  const handleSave = async () => {
-    try {
-      console.log('💾 A guardar peça:', selectedItem.id);
-      await updateWardrobeItem(selectedItem.id, {
-        ...editedItem,
-        aiMetadata: customMetadata
-      });
-      setIsEditing(false);
-      setIsEditingMetadata(false);
-      alert('Peça atualizada com sucesso! ✨');
-    } catch (error) {
-      console.error('❌ Erro ao atualizar peça:', error);
-      alert('Erro ao atualizar a peça: ' + error.message);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (window.confirm('Tens certeza que queres eliminar esta peça? Esta ação não pode ser desfeita.')) {
-      try {
-        console.log('🗑️ A eliminar peça:', selectedItem.id);
-        await deleteWardrobeItem(selectedItem.id, selectedItem.imageUrl);
-        alert('Peça eliminada com sucesso!');
-        navigateToScreen('wardrobe');
-      } catch (error) {
-        console.error('❌ Erro ao eliminar peça:', error);
-        alert('Erro ao eliminar a peça: ' + error.message);
-      }
-    }
-  };
-
-  const generateAIMetadata = async () => {
-    if (!selectedItem.imageUrl) {
-      alert('Esta peça não tem imagem para análise!');
-      return;
-    }
-
-    setIsGeneratingMetadata(true);
-    
-    try {
-      const metadata = await generateGarmentMetadata(selectedItem.imageUrl, selectedItem);
-      setCustomMetadata(metadata);
-      alert('Análise AI gerada com sucesso! ✨');
-    } catch (error) {
-      console.error('❌ Erro ao gerar metadata AI:', error);
-      alert('Erro ao gerar análise AI: ' + error.message);
-    } finally {
-      setIsGeneratingMetadata(false);
-    }
-  };
-
-  const toggleTag = (tag) => {
-    setEditedItem(prev => ({
-      ...prev,
-      tags: prev.tags?.includes(tag)
-        ? prev.tags.filter(t => t !== tag)
-        : [...(prev.tags || []), tag]
-    }));
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-600 p-6 pb-24">
-      {/* Header */}
+      {/* Header com botão de voltar */}
       <div className="flex items-center justify-between mb-6">
-        <button onClick={() => navigateToScreen('wardrobe')} className="text-white">
+        <button
+          onClick={() => navigateToScreen('wardrobe')}
+          className="bg-white/20 backdrop-blur-sm text-white p-3 rounded-xl hover:bg-white/30 transition-colors shadow-lg"
+        >
           <ArrowLeft className="h-6 w-6" />
         </button>
-        <div className="flex items-center space-x-2 bg-black text-white px-4 py-2 rounded-full transform rotate-1">
-          <Sparkles className="h-4 w-4" />
-          <span className="font-bold tracking-wide text-sm">DETALHES</span>
-        </div>
+        
         <button
-          onClick={() => setIsEditing(!isEditing)}
-          className="bg-white text-orange-500 p-3 rounded-full shadow-xl"
+          onClick={isEditing ? handleSave : () => setIsEditing(true)}
+          className="bg-white/20 backdrop-blur-sm text-white p-3 rounded-xl hover:bg-white/30 transition-colors shadow-lg flex items-center gap-2"
         >
           {isEditing ? <Save className="h-5 w-5" /> : <Edit className="h-5 w-5" />}
         </button>
@@ -149,7 +131,7 @@ const ItemDetailScreen = ({ navigateToScreen, screenData }) => {
         {selectedItem.name}
       </h1>
 
-      {/* ✅ CORRIGIDO: Image Section com Modal Funcional */}
+      {/* ✅ IMAGEM COM MODAL - EXATAMENTE IGUAL AO STYLECHATSCREEN */}
       <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-gray-800 flex items-center">
@@ -163,17 +145,16 @@ const ItemDetailScreen = ({ navigateToScreen, screenData }) => {
         </div>
         
         <div className="relative group">
-          {/* ✅ CORRIGIDO: Imagem clicável */}
+          {/* ✅ IMAGEM CLICÁVEL - EXATAMENTE IGUAL AO STYLECHATSCREEN */}
           <img
             src={selectedItem.imageUrl}
             alt={selectedItem.name}
-            className="w-full h-80 object-cover rounded-xl cursor-pointer transition-all duration-300 shadow-lg group-hover:shadow-2xl"
-            onClick={() => handleImageClick(selectedItem.imageUrl)}
+            className="w-full h-80 object-cover rounded-xl cursor-pointer transition-all duration-300 shadow-lg group-hover:shadow-2xl hover:opacity-90"
             onError={(e) => console.log('Erro ao carregar imagem:', e)}
           />
           
           {/* Overlay de hover */}
-          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100">
+          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100" onClick={() => handleImageClick(selectedItem.imageUrl)}>
             <div className="bg-white/90 backdrop-blur-sm rounded-full p-4 transform scale-75 group-hover:scale-100 transition-transform duration-300">
               <Eye className="h-8 w-8 text-gray-700" />
             </div>
@@ -200,7 +181,7 @@ const ItemDetailScreen = ({ navigateToScreen, screenData }) => {
         {isEditing ? (
           <div className="space-y-4">
             <div>
-              <label className="block text-gray-700 font-semibold mb-2">Nome</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Nome</label>
               <input
                 type="text"
                 value={editedItem.name || ''}
@@ -209,111 +190,91 @@ const ItemDetailScreen = ({ navigateToScreen, screenData }) => {
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-gray-700 font-semibold mb-2">Categoria</label>
-                <select
-                  value={editedItem.category || ''}
-                  onChange={(e) => setEditedItem(prev => ({ ...prev, category: e.target.value }))}
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500"
-                >
-                  {availableCategories.map(category => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-gray-700 font-semibold mb-2">Cor</label>
-                <select
-                  value={editedItem.color || ''}
-                  onChange={(e) => setEditedItem(prev => ({ ...prev, color: e.target.value }))}
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500"
-                >
-                  {COMMON_COLORS.map(color => (
-                    <option key={color} value={color}>{color}</option>
-                  ))}
-                </select>
-              </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Categoria</label>
+              <select
+                value={editedItem.category || ''}
+                onChange={(e) => setEditedItem(prev => ({ ...prev, category: e.target.value }))}
+                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="">Selecionar categoria</option>
+                {availableCategories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
             </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-gray-700 font-semibold mb-2">Marca</label>
-                <input
-                  type="text"
-                  value={editedItem.brand || ''}
-                  onChange={(e) => setEditedItem(prev => ({ ...prev, brand: e.target.value }))}
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-gray-700 font-semibold mb-2">Condição</label>
-                <select
-                  value={editedItem.condition || ''}
-                  onChange={(e) => setEditedItem(prev => ({ ...prev, condition: e.target.value }))}
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500"
-                >
-                  {CONDITION_OPTIONS.map(condition => (
-                    <option key={condition} value={condition}>{condition}</option>
-                  ))}
-                </select>
-              </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Cor</label>
+              <select
+                value={editedItem.color || ''}
+                onChange={(e) => setEditedItem(prev => ({ ...prev, color: e.target.value }))}
+                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="">Selecionar cor</option>
+                {COMMON_COLORS.map(color => (
+                  <option key={color} value={color}>{color}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Marca (opcional)</label>
+              <input
+                type="text"
+                value={editedItem.brand || ''}
+                onChange={(e) => setEditedItem(prev => ({ ...prev, brand: e.target.value }))}
+                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+              <select
+                value={editedItem.condition || ''}
+                onChange={(e) => setEditedItem(prev => ({ ...prev, condition: e.target.value }))}
+                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="">Selecionar estado</option>
+                {CONDITION_OPTIONS.map(condition => (
+                  <option key={condition} value={condition}>{condition}</option>
+                ))}
+              </select>
             </div>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <span className="text-gray-600 text-sm">Categoria</span>
-              <p className="font-semibold">{selectedItem.category}</p>
+              <p className="text-sm text-gray-600">Categoria</p>
+              <p className="font-semibold text-gray-800">{selectedItem.category}</p>
             </div>
             <div>
-              <span className="text-gray-600 text-sm">Cor</span>
-              <p className="font-semibold">{selectedItem.color}</p>
+              <p className="text-sm text-gray-600">Cor</p>
+              <p className="font-semibold text-gray-800">{selectedItem.color}</p>
             </div>
-            <div>
-              <span className="text-gray-600 text-sm">Marca</span>
-              <p className="font-semibold">{selectedItem.brand || 'Não especificada'}</p>
-            </div>
-            <div>
-              <span className="text-gray-600 text-sm">Condição</span>
-              <p className="font-semibold">{selectedItem.condition}</p>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Tags Section */}
-      <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl mb-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-4">Tags</h2>
-        
-        {isEditing ? (
-          <div className="flex flex-wrap gap-2">
-            {AVAILABLE_TAGS.map(tag => (
-              <button
-                key={tag}
-                onClick={() => toggleTag(tag)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  editedItem.tags?.includes(tag)
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-wrap gap-2">
-            {selectedItem.tags?.length > 0 ? (
-              selectedItem.tags.map(tag => (
-                <span key={tag} className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-sm font-medium">
-                  {tag}
-                </span>
-              ))
-            ) : (
-              <span className="text-gray-500 italic">Nenhuma tag definida</span>
+            {selectedItem.brand && (
+              <div>
+                <p className="text-sm text-gray-600">Marca</p>
+                <p className="font-semibold text-gray-800">{selectedItem.brand}</p>
+              </div>
+            )}
+            {selectedItem.condition && (
+              <div>
+                <p className="text-sm text-gray-600">Estado</p>
+                <p className="font-semibold text-gray-800">{selectedItem.condition}</p>
+              </div>
+            )}
+            {selectedItem.tags && selectedItem.tags.length > 0 && (
+              <div className="col-span-2">
+                <p className="text-sm text-gray-600 mb-2">Tags</p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedItem.tags.map(tag => (
+                    <span key={tag} className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-sm">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -323,35 +284,49 @@ const ItemDetailScreen = ({ navigateToScreen, screenData }) => {
       <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl mb-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold text-gray-800 flex items-center">
-            <Sparkles className="h-5 w-5 mr-2" />
+            <Sparkles className="h-5 w-5 mr-2 text-purple-600" />
             Análise AI
           </h2>
           
-          {selectedItem.imageUrl && (
-            <button
-              onClick={generateAIMetadata}
-              disabled={isGeneratingMetadata}
-              className="bg-purple-500 text-white px-4 py-2 rounded-xl font-bold hover:bg-purple-600 transition-colors flex items-center gap-2 disabled:opacity-50"
-            >
-              {isGeneratingMetadata ? (
-                <RefreshCw className="h-4 w-4 animate-spin" />
-              ) : (
-                <Wand2 className="h-4 w-4" />
-              )}
-              {isGeneratingMetadata ? 'Analisando...' : 'Regenerar'}
-            </button>
-          )}
+          <div className="flex gap-2">
+            {OPENAI_API_KEY && (
+              <button
+                onClick={handleGenerateMetadata}
+                disabled={isGeneratingMetadata}
+                className="bg-purple-500 text-white px-4 py-2 rounded-xl hover:bg-purple-600 transition-colors flex items-center gap-2 disabled:opacity-50"
+              >
+                {isGeneratingMetadata ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Wand2 className="h-4 w-4" />
+                )}
+                {isGeneratingMetadata ? 'A gerar...' : 'Gerar'}
+              </button>
+            )}
+            
+            {selectedItem.aiMetadata && (
+              <button
+                onClick={() => setIsEditingMetadata(!isEditingMetadata)}
+                className="bg-blue-500 text-white px-4 py-2 rounded-xl hover:bg-blue-600 transition-colors"
+              >
+                {isEditingMetadata ? 'Cancelar' : 'Editar'}
+              </button>
+            )}
+          </div>
         </div>
 
-        {customMetadata ? (
-          <div className="p-4 bg-purple-50 rounded-xl border-l-4 border-purple-400">
-            <p className="text-purple-800">{customMetadata}</p>
-          </div>
+        {isEditingMetadata ? (
+          <textarea
+            value={customMetadata}
+            onChange={(e) => setCustomMetadata(e.target.value)}
+            placeholder="Adicionar análise personalizada..."
+            rows={4}
+            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-purple-500"
+          />
         ) : (
-          <div className="p-4 bg-gray-50 rounded-xl text-center text-gray-500">
-            <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
-            <p>Análise AI não disponível</p>
-          </div>
+          <p className="text-gray-700 whitespace-pre-wrap">
+            {selectedItem.aiMetadata || 'Nenhuma análise AI disponível. Clica em "Gerar" para criar uma análise automática desta peça.'}
+          </p>
         )}
       </div>
 
@@ -413,27 +388,28 @@ const ItemDetailScreen = ({ navigateToScreen, screenData }) => {
           </>
         )}
       </div>
-      
-      {/* ✅ CORRIGIDO: Modal de Visualização de Imagem */}
+
+      {/* ✅ MODAL EXATAMENTE IGUAL AO STYLECHATSCREEN */}
       {showImageModal && modalImage && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
-          onClick={closeModal}
+          onClick={() => setShowImageModal(false)}
         >
           <div className="relative bg-white rounded-2xl p-4 max-w-sm max-h-[80vh] w-full">
             <button
-              onClick={closeModal}
+              onClick={() => setShowImageModal(false)}
               className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg z-10"
             >
               <X className="h-5 w-5" />
             </button>
             <img
               src={modalImage}
-              alt={selectedItem.name}
+              alt="Imagem ampliada"
               className="w-full h-auto object-contain rounded-lg"
               onClick={(e) => e.stopPropagation()}
             />
-            {/* Info da peça na modal */}
+            
+            {/* ✅ INFORMAÇÕES ADICIONAIS NA MODAL */}
             <div className="mt-3 text-center">
               <h3 className="font-semibold text-gray-800">{selectedItem.name}</h3>
               <p className="text-sm text-gray-600">{selectedItem.category} • {selectedItem.color}</p>
@@ -453,11 +429,11 @@ const ItemDetailScreen = ({ navigateToScreen, screenData }) => {
                 </div>
               )}
               
-              {/* ✅ Botões de ação na modal */}
+              {/* Botões de ação na modal */}
               <div className="flex gap-2 mt-3">
                 <button 
                   onClick={() => {
-                    closeModal();
+                    setShowImageModal(false);
                     setIsEditing(true);
                   }}
                   className="flex-1 bg-blue-500 text-white py-2 rounded-lg text-sm hover:bg-blue-600 transition-colors"
@@ -466,7 +442,7 @@ const ItemDetailScreen = ({ navigateToScreen, screenData }) => {
                 </button>
                 <button 
                   onClick={() => {
-                    closeModal();
+                    setShowImageModal(false);
                     navigateToScreen('create-outfit', { preSelectedItem: selectedItem });
                   }}
                   className="flex-1 bg-green-500 text-white py-2 rounded-lg text-sm hover:bg-green-600 transition-colors"
