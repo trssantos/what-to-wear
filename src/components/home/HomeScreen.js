@@ -1,23 +1,25 @@
-// src/components/home/HomeScreen.js - Versão completa atualizada
+// src/components/home/HomeScreen.js - Versão refatorada
 import React, { useState, useEffect } from 'react';
 import { 
   User, Settings, LogOut, Shirt, Sparkles, Camera, 
   Palette, ShoppingBag, Calendar, Search, Plus,
   MessageCircle, Bot, Star, Dna, Users, Target, Eye,
   Briefcase, PartyPopper, Store, Package,
-  TrendingUp, Zap, Home, ChevronRight, Edit3
+  TrendingUp, Zap, ChevronRight, Edit3
 } from 'lucide-react';
 import { useAppContext } from '../../contexts/AppContext';
 import { useAuth } from '../../hooks/useAuth';
 import { auth } from '../../firebase';
 import { OPENAI_API_KEY } from '../../utils/constants';
+import BottomNavigation from '../shared/BottomNavigation'; // ✨ NOVO
 
-const HomeScreenReorganized = ({ navigateToScreen, setShowApiSetup }) => {
+const HomeScreen = ({ navigateToScreen, setShowApiSetup, screenData }) => {
   const { wardrobe, outfits, userProfile } = useAppContext();
   const { signOut } = useAuth();
   const [user, setUser] = useState(null);
   
-  const [activeTab, setActiveTab] = useState('quick');
+  // ✨ NOVO: Suportar activeTab vindo de screenData (quando navega de outros ecrãs)
+  const [activeTab, setActiveTab] = useState(screenData?.activeTab || 'quick');
   const [searchTerm, setSearchTerm] = useState('');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
@@ -28,6 +30,13 @@ const HomeScreenReorganized = ({ navigateToScreen, setShowApiSetup }) => {
     });
     return () => unsubscribe();
   }, []);
+
+  // ✨ NOVO: Atualizar activeTab se vier de screenData
+  useEffect(() => {
+    if (screenData?.activeTab) {
+      setActiveTab(screenData.activeTab);
+    }
+  }, [screenData]);
 
   // Get user's preferred name
   const getUserName = () => {
@@ -72,61 +81,54 @@ const HomeScreenReorganized = ({ navigateToScreen, setShowApiSetup }) => {
           title: "Análise Rápida",
           subtitle: "Vale a pena comprar esta peça?",
           screen: "quick-analysis",
-          gradient: "from-purple-600 to-indigo-600"
-        },
-        {
-          icon: <MessageCircle className="h-6 w-6" />,
-          title: "Consultor de Estilo",
-          subtitle: "Chat com análise de fotos",
-          screen: "style-chat",
-          gradient: "from-purple-500 to-pink-500"
+          gradient: "from-purple-500 to-indigo-500"
         }
       ]
     },
     'wardrobe': {
-      name: 'Armário & Outfits',
+      name: 'Armário',
       icon: <Shirt className="h-5 w-5" />,
-      color: 'from-blue-500 to-cyan-500',
+      color: 'from-orange-500 to-red-500',
       features: [
         {
           icon: <Shirt className="h-6 w-6" />,
-          title: "Armário Digital",
-          subtitle: `${wardrobe.length} peças organizadas`,
+          title: "Meu Armário",
+          subtitle: "Explora e organiza as tuas peças",
           screen: "wardrobe",
-          gradient: "from-blue-500 to-cyan-500"
+          gradient: "from-orange-500 to-red-500"
         },
         {
-          icon: <Package className="h-6 w-6" />,
-          title: "Meus Outfits",
-          subtitle: `${outfits.length} looks criados`,
-          screen: "outfits",
-          gradient: "from-violet-500 to-purple-500"
+          icon: <Plus className="h-6 w-6" />,
+          title: "Adicionar Peça",
+          subtitle: "Fotografa e cataloga nova peça",
+          screen: "add-item",
+          gradient: "from-green-500 to-emerald-500"
         },
         {
-          icon: <Target className="h-6 w-6" />,
-          title: "Desafios do Armário",
-          subtitle: "30 outfits em 30 dias",
-          screen: "wardrobe-challenges",
-          gradient: "from-red-500 to-pink-500"
+          icon: <Search className="h-6 w-6" />,
+          title: "Pesquisa Inteligente",
+          subtitle: "Encontra peças por cor, estilo ou ocasião",
+          screen: "wardrobe-search",
+          gradient: "from-blue-500 to-indigo-500"
         },
         {
-          icon: <Eye className="h-6 w-6" />,
-          title: "Sala de Provas Virtual",
-          subtitle: "Experimenta peças virtualmente",
-          screen: "virtual-fitting",
-          gradient: "from-cyan-500 to-blue-500"
+          icon: <Sparkles className="h-6 w-6" />,
+          title: "Análise do Armário",
+          subtitle: "Estatísticas e insights sobre as tuas peças",
+          screen: "wardrobe-analytics",
+          gradient: "from-purple-500 to-pink-500"
         }
       ]
     },
     'analysis': {
-      name: 'Análise & Perfil',
+      name: 'Análise',
       icon: <Dna className="h-5 w-5" />,
-      color: 'from-purple-500 to-pink-500',
+      color: 'from-indigo-500 to-purple-500',
       features: [
         {
           icon: <Palette className="h-6 w-6" />,
           title: "Análise de Cores",
-          subtitle: "Descobre as tuas cores perfeitas",
+          subtitle: "Descobre a tua estação de cor ideal",
           screen: "color-analysis",
           gradient: "from-pink-500 to-rose-500"
         },
@@ -178,6 +180,13 @@ const HomeScreenReorganized = ({ navigateToScreen, setShowApiSetup }) => {
           subtitle: "Assistente de compras inteligente",
           screen: "personal-shopper",
           gradient: "from-blue-500 to-teal-500"
+        },
+        {
+          icon: <Eye className="h-6 w-6" />,
+          title: "Análise de Look",
+          subtitle: "IA analisa qualquer roupa ou outfit",
+          screen: "quick-analysis",
+          gradient: "from-orange-500 to-pink-500"
         }
       ]
     },
@@ -186,6 +195,13 @@ const HomeScreenReorganized = ({ navigateToScreen, setShowApiSetup }) => {
       icon: <Calendar className="h-5 w-5" />,
       color: 'from-orange-500 to-red-500',
       features: [
+        {
+          icon: <Package className="h-6 w-6" />,
+          title: "Meus Outfits",
+          subtitle: "Coleção dos teus looks favoritos",
+          screen: "outfits",
+          gradient: "from-violet-500 to-purple-500"
+        },
         {
           icon: <Calendar className="h-6 w-6" />,
           title: "Calendário de Looks",
@@ -255,15 +271,6 @@ const HomeScreenReorganized = ({ navigateToScreen, setShowApiSetup }) => {
         feature.subtitle.toLowerCase().includes(searchTerm.toLowerCase())
       )
     : featureCategories[activeTab]?.features || [];
-
-  const bottomNavItems = [
-    { id: 'quick', icon: Zap, label: 'Rápido' },
-    { id: 'wardrobe', icon: Shirt, label: 'Armário' },
-    { id: 'analysis', icon: Dna, label: 'Análise' },
-    { id: 'ai', icon: Bot, label: 'IA' },
-    { id: 'planning', icon: Calendar, label: 'Planos' },
-    { id: 'shopping', icon: ShoppingBag, label: 'Shopping' }
-  ];
 
   const handleProfileMenuClick = (e) => {
     e.stopPropagation();
@@ -431,37 +438,12 @@ const HomeScreenReorganized = ({ navigateToScreen, setShowApiSetup }) => {
         </div>
       </div>
 
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
-        <div className="max-w-md mx-auto">
-          <div className="flex">
-            <div className="grid grid-cols-6 w-full">
-              {bottomNavItems.map((item) => {
-                const isActive = activeTab === item.id;
-                const Icon = item.icon;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`flex flex-col items-center justify-center py-2 px-1 transition-colors ${
-                      isActive 
-                        ? 'text-purple-600 bg-purple-50' 
-                        : 'text-gray-600 active:bg-gray-100'
-                    }`}
-                  >
-                    <Icon className={`h-4 w-4 ${isActive ? 'text-purple-600' : 'text-gray-600'}`} />
-                    <span className={`text-xs mt-1 font-medium ${
-                      isActive ? 'text-purple-600' : 'text-gray-600'
-                    }`}>
-                      {item.label}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* ✨ NOVO: Usar componente BottomNavigation reutilizável */}
+      <BottomNavigation 
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        currentScreen="home"
+      />
     </div>
   );
 };
@@ -498,4 +480,4 @@ const FeatureCard = ({ icon, title, subtitle, onClick, gradient, showCategory, c
   </div>
 );
 
-export default HomeScreenReorganized;
+export default HomeScreen;

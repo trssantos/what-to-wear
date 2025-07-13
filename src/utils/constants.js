@@ -1,6 +1,95 @@
 export const OPENAI_API_KEY = process.env.REACT_APP_OPENAI_API_KEY;
 
-// Categorias de roupas disponíveis
+// Categorias base para todos os gêneros
+export const BASE_CLOTHING_CATEGORIES = [
+  'T-shirts', 
+  'Camisas', 
+  'Camisolas/Sweaters',
+  'Hoodies/Moletons',
+  'Calças',
+  'Jeans',
+  'Casacos',
+  'Blazers',
+  'Sapatos',
+  'Ténis/Sneakers',
+  'Underwear',
+  'Pijamas',
+  'Roupa Desportiva'
+];
+
+// Categorias específicas femininas
+export const FEMALE_SPECIFIC_CATEGORIES = [
+  'Vestidos',
+  'Saias',
+  'Blusas',
+  'Tops',
+  'Cardigans',
+  'Knitwear',
+  'Lingerie/Sutiãs',
+  'Bodies',
+  'Macacões/Jumpsuits',
+  'Echarpes/Lenços',
+  'Kimonos',
+  'Crop Tops',
+  'Camisoles',
+  'Túnicas',
+  'Wrap Dresses',
+  'Maxidresses',
+  'Cocktail Dresses',
+  'Sapatos de Salto',
+  'Sandálias',
+  'Botas (Femininas)',
+  'Sabrinas/Bailarinas',
+  'Wedges',
+  'Leggings',
+  'Meias-calças/Collants'
+];
+
+// Categorias específicas masculinas
+export const MALE_SPECIFIC_CATEGORIES = [
+  'Polos',
+  'Henley Shirts',
+  'Tank Tops',
+  'Muscle Shirts',
+  'Camisas Formais',
+  'Chinos',
+  'Shorts',
+  'Bermudas',
+  'Calças de Fato',
+  'Suspensórios',
+  'Gravatas',
+  'Laços/Bow Ties',
+  'Coletes',
+  'Smokings',
+  'Fatos/Ternos',
+  'Sapatos Formais',
+  'Mocassins',
+  'Botas (Masculinas)',
+  'Chinelos',
+  'Boxers/Cuecas',
+  'Camisolas de Interior',
+  'Fatos de Banho (Masculinos)'
+];
+
+// Função para obter categorias baseadas no gênero
+export const getClothingCategoriesByGender = (gender) => {
+  const baseCategories = [...BASE_CLOTHING_CATEGORIES];
+  
+  switch (gender) {
+    case 'female':
+      return [...baseCategories, ...FEMALE_SPECIFIC_CATEGORIES].sort();
+    case 'male':
+      return [...baseCategories, ...MALE_SPECIFIC_CATEGORIES].sort();
+    case 'non-binary':
+      // Para non-binary, incluir todas as categorias
+      return [...baseCategories, ...FEMALE_SPECIFIC_CATEGORIES, ...MALE_SPECIFIC_CATEGORIES].sort();
+    default:
+      // Se género não especificado, mostrar todas
+      return [...baseCategories, ...FEMALE_SPECIFIC_CATEGORIES, ...MALE_SPECIFIC_CATEGORIES].sort();
+  }
+};
+
+// Categorias legacy para compatibilidade (pode remover depois)
 export const CLOTHING_CATEGORIES = [
   'Camisas', 
   'Calças', 
@@ -30,23 +119,58 @@ export const AVAILABLE_TAGS = [
   'elegant', 
   'comfortable', 
   'trendy', 
-  'classic'
+  'classic',
+  'vintage',
+  'bohemian',
+  'minimalist',
+  'edgy',
+  'romantic',
+  'sporty',
+  'business',
+  'weekend',
+  'summer',
+  'winter',
+  'spring',
+  'autumn',
+  'holiday',
+  'date',
+  'gym',
+  'lounge'
 ];
 
-// Cores comuns para facilitar seleção
+// Cores expandidas
 export const COMMON_COLORS = [
   'Branco',
   'Preto', 
   'Azul',
+  'Azul Marinho',
+  'Azul Claro',
   'Vermelho',
   'Verde',
+  'Verde Escuro',
+  'Verde Claro',
   'Amarelo',
   'Rosa',
+  'Rosa Claro',
   'Roxo',
+  'Lilás',
   'Castanho',
   'Cinzento',
+  'Cinzento Claro',
+  'Cinzento Escuro',
   'Bege',
-  'Laranja'
+  'Creme',
+  'Laranja',
+  'Coral',
+  'Burgundy',
+  'Vinho',
+  'Caqui',
+  'Dourado',
+  'Prateado',
+  'Nude',
+  'Off-white',
+  'Estampado',
+  'Multicolor'
 ];
 
 // Marcas populares (para auto-complete)
@@ -62,7 +186,19 @@ export const POPULAR_BRANDS = [
   'Uniqlo',
   'Nike',
   'Adidas',
-  'Levi\'s'
+  'Levi\'s',
+  'Calvin Klein',
+  'Tommy Hilfiger',
+  'Ralph Lauren',
+  'Lacoste',
+  'Hugo Boss',
+  'Armani',
+  'Versace',
+  'Gucci',
+  'Prada',
+  'Burberry',
+  'Chanel',
+  'Dior'
 ];
 
 // Ocasiões comuns para outfits
@@ -76,7 +212,17 @@ export const COMMON_OCCASIONS = [
   'Praia',
   'Viagem',
   'Casamento',
-  'Encontro'
+  'Encontro',
+  'Reunião',
+  'Apresentação',
+  'Brunch',
+  'Cinema',
+  'Shopping',
+  'Ginásio',
+  'Caminhada',
+  'Noite',
+  'Cocktail',
+  'Formal'
 ];
 
 // Configurações da aplicação

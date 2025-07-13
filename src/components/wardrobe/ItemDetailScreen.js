@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Edit, Trash2, Sparkles, RefreshCw, Wand2, Save, X } from 'lucide-react';
+import { ArrowLeft, Edit, Trash2, Sparkles, RefreshCw, Wand2, Save, X, Camera, Eye, ZoomIn } from 'lucide-react';
 import { useAppContext } from '../../contexts/AppContext';
 import { useGarmentAI } from '../../hooks/useGarmentAI';
-import { OPENAI_API_KEY } from '../../utils/constants';
-import { CLOTHING_CATEGORIES, COMMON_COLORS, AVAILABLE_TAGS, CONDITION_OPTIONS } from '../../utils/constants';
+import { OPENAI_API_KEY, getClothingCategoriesByGender, COMMON_COLORS, AVAILABLE_TAGS, CONDITION_OPTIONS } from '../../utils/constants';
+import BottomNavigation from '../shared/BottomNavigation';
 
 const ItemDetailScreen = ({ navigateToScreen, screenData }) => {
-  const { updateWardrobeItem, deleteWardrobeItem } = useAppContext();
+  const { updateWardrobeItem, deleteWardrobeItem, userProfile } = useAppContext();
   const { generateGarmentMetadata } = useGarmentAI();
   
-  // ✅ CORREÇÃO: usar screenData em vez de selectedItem do contexto
   const selectedItem = screenData;
   
   const [isEditing, setIsEditing] = useState(false);
@@ -17,6 +16,12 @@ const ItemDetailScreen = ({ navigateToScreen, screenData }) => {
   const [isGeneratingMetadata, setIsGeneratingMetadata] = useState(false);
   const [editedItem, setEditedItem] = useState(selectedItem || {});
   const [customMetadata, setCustomMetadata] = useState(selectedItem?.aiMetadata || '');
+  
+  // ✅ CORRIGIDO: Estados da modal
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [modalImage, setModalImage] = useState(null);
+
+  const availableCategories = getClothingCategoriesByGender(userProfile?.gender);
 
   React.useEffect(() => {
     if (selectedItem) {
@@ -25,19 +30,39 @@ const ItemDetailScreen = ({ navigateToScreen, screenData }) => {
     }
   }, [selectedItem]);
 
+  // ✅ CORRIGIDO: Função para abrir modal
+  const handleImageClick = (imageUrl) => {
+    console.log('🖼️ Clicou na imagem:', imageUrl); // Debug
+    setModalImage(imageUrl);
+    setShowImageModal(true);
+  };
+
+  // ✅ CORRIGIDO: Função para fechar modal
+  const closeModal = () => {
+    setShowImageModal(false);
+    setModalImage(null);
+  };
+
   if (!selectedItem) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-600 p-6 flex items-center justify-center">
-        <div className="bg-white rounded-2xl p-8 shadow-xl text-center">
-          <h2 className="text-xl font-bold text-gray-800 mb-4">Peça não encontrada</h2>
-          <p className="text-gray-600 mb-6">A peça que procuras não foi encontrada.</p>
-          <button
-            onClick={() => navigateToScreen('wardrobe')}
-            className="bg-orange-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-orange-600 transition-colors"
-          >
-            Voltar ao Guarda-Roupa
-          </button>
+      <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-600 p-6 pb-24">
+        <div className="flex items-center justify-center min-h-[calc(100vh-12rem)]">
+          <div className="bg-white rounded-2xl p-8 shadow-xl text-center">
+            <h2 className="text-xl font-bold text-gray-800 mb-4">Peça não encontrada</h2>
+            <p className="text-gray-600 mb-6">A peça que procuras não foi encontrada.</p>
+            <button
+              onClick={() => navigateToScreen('wardrobe')}
+              className="bg-orange-500 text-white px-6 py-2 rounded-xl font-bold hover:bg-orange-600 transition-colors"
+            >
+              Voltar ao Guarda-Roupa
+            </button>
+          </div>
         </div>
+        
+        <BottomNavigation 
+          currentScreen="item-detail" 
+          navigateToScreen={navigateToScreen}
+        />
       </div>
     );
   }
@@ -72,53 +97,27 @@ const ItemDetailScreen = ({ navigateToScreen, screenData }) => {
     }
   };
 
-  const regenerateAIMetadata = async () => {
-    if (!OPENAI_API_KEY) {
-      alert('API key da OpenAI não configurada no sistema.');
-      return;
-    }
-    
+  const generateAIMetadata = async () => {
     if (!selectedItem.imageUrl) {
-      alert('Esta peça não tem imagem para análise.');
+      alert('Esta peça não tem imagem para análise!');
       return;
     }
 
     setIsGeneratingMetadata(true);
+    
     try {
-      console.log('🔄 A regenerar metadata AI para:', selectedItem.name);
       const metadata = await generateGarmentMetadata(selectedItem.imageUrl, selectedItem);
-      
-      // Atualizar no servidor
-      await updateWardrobeItem(selectedItem.id, {
-        ...selectedItem,
-        aiMetadata: metadata
-      });
-      
-      // Atualizar estado local
       setCustomMetadata(metadata);
-      alert('Análise AI regenerada com sucesso! ✨');
+      alert('Análise AI gerada com sucesso! ✨');
     } catch (error) {
-      console.error('❌ Erro ao regenerar metadata:', error);
-      alert('Erro ao regenerar análise: ' + error.message);
-    }
-    setIsGeneratingMetadata(false);
-  };
-
-  const saveCustomMetadata = async () => {
-    try {
-      await updateWardrobeItem(selectedItem.id, {
-        ...selectedItem,
-        aiMetadata: customMetadata
-      });
-      setIsEditingMetadata(false);
-      alert('Análise atualizada com sucesso! ✨');
-    } catch (error) {
-      console.error('❌ Erro ao salvar metadata:', error);
-      alert('Erro ao atualizar análise: ' + error.message);
+      console.error('❌ Erro ao gerar metadata AI:', error);
+      alert('Erro ao gerar análise AI: ' + error.message);
+    } finally {
+      setIsGeneratingMetadata(false);
     }
   };
 
-  const handleTagToggle = (tag) => {
+  const toggleTag = (tag) => {
     setEditedItem(prev => ({
       ...prev,
       tags: prev.tags?.includes(tag)
@@ -128,293 +127,363 @@ const ItemDetailScreen = ({ navigateToScreen, screenData }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-600 p-6">
-      <div className="max-w-lg mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-600 p-6 pb-24">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6">
+        <button onClick={() => navigateToScreen('wardrobe')} className="text-white">
+          <ArrowLeft className="h-6 w-6" />
+        </button>
+        <div className="flex items-center space-x-2 bg-black text-white px-4 py-2 rounded-full transform rotate-1">
+          <Sparkles className="h-4 w-4" />
+          <span className="font-bold tracking-wide text-sm">DETALHES</span>
+        </div>
+        <button
+          onClick={() => setIsEditing(!isEditing)}
+          className="bg-white text-orange-500 p-3 rounded-full shadow-xl"
+        >
+          {isEditing ? <Save className="h-5 w-5" /> : <Edit className="h-5 w-5" />}
+        </button>
+      </div>
+
+      <h1 className="text-4xl font-black bg-gradient-to-r from-yellow-300 via-white to-orange-200 bg-clip-text text-transparent mb-8 transform -rotate-1 text-center">
+        {selectedItem.name}
+      </h1>
+
+      {/* ✅ CORRIGIDO: Image Section com Modal Funcional */}
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-gray-800 flex items-center">
+            <Camera className="h-5 w-5 mr-2" />
+            Foto da Peça
+          </h2>
+          <div className="flex items-center space-x-2 text-sm text-gray-500">
+            <ZoomIn className="h-4 w-4" />
+            <span>Toca para ampliar</span>
+          </div>
+        </div>
         
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6 pt-8">
-          <div className="flex items-center">
-            <button 
-              onClick={() => navigateToScreen('wardrobe')}
-              className="mr-4 p-3 bg-white bg-opacity-20 rounded-2xl text-white hover:bg-opacity-30 transition-all"
-            >
-              <ArrowLeft className="h-6 w-6" />
-            </button>
-            <h1 className="text-2xl font-bold text-white">Detalhes da Peça</h1>
+        <div className="relative group">
+          {/* ✅ CORRIGIDO: Imagem clicável */}
+          <img
+            src={selectedItem.imageUrl}
+            alt={selectedItem.name}
+            className="w-full h-80 object-cover rounded-xl cursor-pointer transition-all duration-300 shadow-lg group-hover:shadow-2xl"
+            onClick={() => handleImageClick(selectedItem.imageUrl)}
+            onError={(e) => console.log('Erro ao carregar imagem:', e)}
+          />
+          
+          {/* Overlay de hover */}
+          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <div className="bg-white/90 backdrop-blur-sm rounded-full p-4 transform scale-75 group-hover:scale-100 transition-transform duration-300">
+              <Eye className="h-8 w-8 text-gray-700" />
+            </div>
           </div>
           
-          {!isEditing && (
-            <div className="flex space-x-2">
-              <button
-                onClick={() => {
-                  setIsEditing(true);
-                  setEditedItem(selectedItem);
-                }}
-                className="p-3 bg-white bg-opacity-20 rounded-2xl text-white hover:bg-opacity-30 transition-all"
-              >
-                <Edit className="h-5 w-5" />
-              </button>
-              <button
-                onClick={handleDelete}
-                className="p-3 bg-red-500 bg-opacity-80 rounded-2xl text-white hover:bg-opacity-100 transition-all"
-              >
-                <Trash2 className="h-5 w-5" />
-              </button>
+          {/* Badge AI */}
+          {selectedItem.aiMetadata && (
+            <div className="absolute top-4 right-4 bg-purple-500 p-2 rounded-full shadow-lg">
+              <Sparkles className="h-4 w-4 text-white" />
             </div>
           )}
-        </div>
-
-        <div className="space-y-6">
           
-          {/* Image */}
-          <div className="bg-white rounded-3xl p-6 shadow-2xl">
-            {selectedItem.imageUrl ? (
-              <img 
-                src={selectedItem.imageUrl} 
-                alt={selectedItem.name}
-                className="w-full h-64 object-cover rounded-2xl"
+          {/* Badge de zoom */}
+          <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm rounded-full p-2 shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <ZoomIn className="h-4 w-4 text-gray-700" />
+          </div>
+        </div>
+      </div>
+
+      {/* Basic Info Section */}
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl mb-6">
+        <h2 className="text-xl font-bold text-gray-800 mb-4">Informações Básicas</h2>
+        
+        {isEditing ? (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-gray-700 font-semibold mb-2">Nome</label>
+              <input
+                type="text"
+                value={editedItem.name || ''}
+                onChange={(e) => setEditedItem(prev => ({ ...prev, name: e.target.value }))}
+                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500"
               />
-            ) : (
-              <div className="w-full h-64 bg-gray-100 rounded-2xl flex items-center justify-center">
-                <span className="text-gray-400 text-lg">Sem imagem</span>
-              </div>
-            )}
-          </div>
-
-          {/* Basic Info */}
-          <div className="bg-white rounded-3xl p-6 shadow-2xl">
-            {isEditing ? (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-gray-700 font-bold mb-2">Nome da Peça</label>
-                  <input
-                    type="text"
-                    value={editedItem.name || ''}
-                    onChange={(e) => setEditedItem({ ...editedItem, name: e.target.value })}
-                    className="w-full p-3 border-2 border-orange-200 rounded-2xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 font-bold mb-2">Categoria</label>
-                  <select
-                    value={editedItem.category || ''}
-                    onChange={(e) => setEditedItem({ ...editedItem, category: e.target.value })}
-                    className="w-full p-3 border-2 border-orange-200 rounded-2xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  >
-                    <option value="">Seleciona uma categoria</option>
-                    {CLOTHING_CATEGORIES.map(category => (
-                      <option key={category} value={category}>{category}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-gray-700 font-bold mb-2">Cor</label>
-                    <select
-                      value={editedItem.color || ''}
-                      onChange={(e) => setEditedItem({ ...editedItem, color: e.target.value })}
-                      className="w-full p-3 border-2 border-orange-200 rounded-2xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    >
-                      <option value="">Seleciona a cor</option>
-                      {COMMON_COLORS.map(color => (
-                        <option key={color} value={color}>{color}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-gray-700 font-bold mb-2">Estado</label>
-                    <select
-                      value={editedItem.condition || ''}
-                      onChange={(e) => setEditedItem({ ...editedItem, condition: e.target.value })}
-                      className="w-full p-3 border-2 border-orange-200 rounded-2xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    >
-                      {CONDITION_OPTIONS.map(condition => (
-                        <option key={condition} value={condition}>{condition}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 font-bold mb-2">Marca</label>
-                  <input
-                    type="text"
-                    value={editedItem.brand || ''}
-                    onChange={(e) => setEditedItem({ ...editedItem, brand: e.target.value })}
-                    className="w-full p-3 border-2 border-orange-200 rounded-2xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 font-bold mb-2">Tags</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {AVAILABLE_TAGS.map(tag => (
-                      <button
-                        key={tag}
-                        onClick={() => handleTagToggle(tag)}
-                        className={`p-2 rounded-xl text-sm font-bold transition-all ${
-                          editedItem.tags?.includes(tag)
-                            ? 'bg-orange-500 text-white'
-                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                        }`}
-                      >
-                        {tag}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-gray-700 font-bold mb-2">Notas</label>
-                  <textarea
-                    value={editedItem.notes || ''}
-                    onChange={(e) => setEditedItem({ ...editedItem, notes: e.target.value })}
-                    className="w-full h-24 p-3 border-2 border-orange-200 rounded-2xl focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
-                  />
-                </div>
-
-                <div className="flex space-x-3">
-                  <button
-                    onClick={handleSave}
-                    className="flex-1 bg-green-500 text-white py-3 rounded-2xl font-bold flex items-center justify-center space-x-2 hover:bg-green-600 transition-colors"
-                  >
-                    <Save className="h-5 w-5" />
-                    <span>Guardar</span>
-                  </button>
-                  <button
-                    onClick={() => setIsEditing(false)}
-                    className="flex-1 bg-gray-500 text-white py-3 rounded-2xl font-bold flex items-center justify-center space-x-2 hover:bg-gray-600 transition-colors"
-                  >
-                    <X className="h-5 w-5" />
-                    <span>Cancelar</span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <h2 className="text-2xl font-bold text-gray-800 mb-4">{selectedItem.name}</h2>
-                
-                <div className="grid grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <h3 className="font-bold text-gray-700">Categoria</h3>
-                    <p className="text-gray-600">{selectedItem.category || 'Não especificada'}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-700">Cor</h3>
-                    <p className="text-gray-600">{selectedItem.color || 'Não especificada'}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-700">Marca</h3>
-                    <p className="text-gray-600">{selectedItem.brand || 'Não especificada'}</p>
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-700">Estado</h3>
-                    <p className="text-gray-600">{selectedItem.condition || 'Não especificado'}</p>
-                  </div>
-                </div>
-
-                {selectedItem.tags && selectedItem.tags.length > 0 && (
-                  <div className="mb-4">
-                    <h3 className="font-bold text-gray-700 mb-2">Tags</h3>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedItem.tags.map((tag, index) => (
-                        <span key={index} className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {selectedItem.notes && (
-                  <div>
-                    <h3 className="font-bold text-gray-700 mb-2">Notas</h3>
-                    <p className="text-gray-600 bg-gray-50 p-3 rounded-xl">{selectedItem.notes}</p>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-
-          {/* AI Metadata Section */}
-          <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl p-4 border border-purple-200">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="flex items-center space-x-2 text-gray-800 font-bold">
-                <Sparkles className="h-5 w-5 text-purple-600" />
-                <span>Análise AI da Peça</span>
-              </h3>
-              <div className="flex space-x-2">
-                {selectedItem.imageUrl && OPENAI_API_KEY && (
-                  <button
-                    onClick={regenerateAIMetadata}
-                    disabled={isGeneratingMetadata}
-                    className="bg-purple-500 hover:bg-purple-600 text-white p-2 rounded-lg text-xs font-bold flex items-center space-x-1 disabled:opacity-50"
-                  >
-                    <RefreshCw className={`h-3 w-3 ${isGeneratingMetadata ? 'animate-spin' : ''}`} />
-                    <span>Regenerar</span>
-                  </button>
-                )}
-                <button
-                  onClick={() => setIsEditingMetadata(!isEditingMetadata)}
-                  className="bg-gray-500 hover:bg-gray-600 text-white p-2 rounded-lg text-xs font-bold"
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2">Categoria</label>
+                <select
+                  value={editedItem.category || ''}
+                  onChange={(e) => setEditedItem(prev => ({ ...prev, category: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500"
                 >
-                  {isEditingMetadata ? 'Cancelar' : 'Editar'}
-                </button>
+                  {availableCategories.map(category => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2">Cor</label>
+                <select
+                  value={editedItem.color || ''}
+                  onChange={(e) => setEditedItem(prev => ({ ...prev, color: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500"
+                >
+                  {COMMON_COLORS.map(color => (
+                    <option key={color} value={color}>{color}</option>
+                  ))}
+                </select>
               </div>
             </div>
             
-            {isGeneratingMetadata ? (
-              <div className="flex items-center space-x-2 text-purple-600">
-                <Wand2 className="h-4 w-4 animate-spin" />
-                <span className="text-sm">A AI está a regenerar a análise...</span>
-              </div>
-            ) : isEditingMetadata ? (
-              <div className="space-y-3">
-                <textarea
-                  value={customMetadata}
-                  onChange={(e) => setCustomMetadata(e.target.value)}
-                  className="w-full h-32 p-3 border-2 border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none text-sm"
-                  placeholder="Edita ou adiciona a análise da peça..."
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2">Marca</label>
+                <input
+                  type="text"
+                  value={editedItem.brand || ''}
+                  onChange={(e) => setEditedItem(prev => ({ ...prev, brand: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500"
                 />
-                <button
-                  onClick={saveCustomMetadata}
-                  className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-bold"
+              </div>
+              
+              <div>
+                <label className="block text-gray-700 font-semibold mb-2">Condição</label>
+                <select
+                  value={editedItem.condition || ''}
+                  onChange={(e) => setEditedItem(prev => ({ ...prev, condition: e.target.value }))}
+                  className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500"
                 >
-                  Guardar Análise
-                </button>
+                  {CONDITION_OPTIONS.map(condition => (
+                    <option key={condition} value={condition}>{condition}</option>
+                  ))}
+                </select>
               </div>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <span className="text-gray-600 text-sm">Categoria</span>
+              <p className="font-semibold">{selectedItem.category}</p>
+            </div>
+            <div>
+              <span className="text-gray-600 text-sm">Cor</span>
+              <p className="font-semibold">{selectedItem.color}</p>
+            </div>
+            <div>
+              <span className="text-gray-600 text-sm">Marca</span>
+              <p className="font-semibold">{selectedItem.brand || 'Não especificada'}</p>
+            </div>
+            <div>
+              <span className="text-gray-600 text-sm">Condição</span>
+              <p className="font-semibold">{selectedItem.condition}</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Tags Section */}
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl mb-6">
+        <h2 className="text-xl font-bold text-gray-800 mb-4">Tags</h2>
+        
+        {isEditing ? (
+          <div className="flex flex-wrap gap-2">
+            {AVAILABLE_TAGS.map(tag => (
+              <button
+                key={tag}
+                onClick={() => toggleTag(tag)}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                  editedItem.tags?.includes(tag)
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                {tag}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {selectedItem.tags?.length > 0 ? (
+              selectedItem.tags.map(tag => (
+                <span key={tag} className="bg-orange-100 text-orange-600 px-3 py-1 rounded-full text-sm font-medium">
+                  {tag}
+                </span>
+              ))
             ) : (
-              <div className="bg-white rounded-xl p-3">
-                {selectedItem.aiMetadata ? (
-                  <p className="text-gray-700 text-sm leading-relaxed">
-                    {selectedItem.aiMetadata}
-                  </p>
-                ) : (
-                  <div className="text-center text-gray-500">
-                    <p className="text-sm mb-2">Nenhuma análise AI disponível</p>
-                    {selectedItem.imageUrl && OPENAI_API_KEY ? (
-                      <button
-                        onClick={regenerateAIMetadata}
-                        className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-bold"
-                      >
-                        Gerar Análise
-                      </button>
-                    ) : (
-                      <p className="text-xs text-gray-400">
-                        {!selectedItem.imageUrl ? 'Imagem necessária para análise' : 'API key não configurada'}
-                      </p>
-                    )}
-                  </div>
-                )}
-              </div>
+              <span className="text-gray-500 italic">Nenhuma tag definida</span>
             )}
           </div>
-
-        </div>
+        )}
       </div>
+
+      {/* AI Metadata Section */}
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-gray-800 flex items-center">
+            <Sparkles className="h-5 w-5 mr-2" />
+            Análise AI
+          </h2>
+          
+          {selectedItem.imageUrl && (
+            <button
+              onClick={generateAIMetadata}
+              disabled={isGeneratingMetadata}
+              className="bg-purple-500 text-white px-4 py-2 rounded-xl font-bold hover:bg-purple-600 transition-colors flex items-center gap-2 disabled:opacity-50"
+            >
+              {isGeneratingMetadata ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Wand2 className="h-4 w-4" />
+              )}
+              {isGeneratingMetadata ? 'Analisando...' : 'Regenerar'}
+            </button>
+          )}
+        </div>
+
+        {customMetadata ? (
+          <div className="p-4 bg-purple-50 rounded-xl border-l-4 border-purple-400">
+            <p className="text-purple-800">{customMetadata}</p>
+          </div>
+        ) : (
+          <div className="p-4 bg-gray-50 rounded-xl text-center text-gray-500">
+            <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p>Análise AI não disponível</p>
+          </div>
+        )}
+      </div>
+
+      {/* Notes Section */}
+      <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl mb-6">
+        <h2 className="text-xl font-bold text-gray-800 mb-4">Notas</h2>
+        
+        {isEditing ? (
+          <textarea
+            value={editedItem.notes || ''}
+            onChange={(e) => setEditedItem(prev => ({ ...prev, notes: e.target.value }))}
+            placeholder="Adicionar notas sobre a peça..."
+            rows={3}
+            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500"
+          />
+        ) : (
+          <p className="text-gray-700">
+            {selectedItem.notes || 'Nenhuma nota adicionada'}
+          </p>
+        )}
+      </div>
+
+      {/* Action Buttons */}
+      <div className="flex gap-4 mb-6">
+        {isEditing ? (
+          <>
+            <button
+              onClick={() => setIsEditing(false)}
+              className="flex-1 bg-gray-500 text-white py-4 rounded-xl font-bold hover:bg-gray-600 transition-colors"
+            >
+              Cancelar
+            </button>
+            
+            <button
+              onClick={handleSave}
+              className="flex-1 bg-orange-500 text-white py-4 rounded-xl font-bold hover:bg-orange-600 transition-colors flex items-center justify-center gap-2"
+            >
+              <Save className="h-5 w-5" />
+              Guardar
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              onClick={handleDelete}
+              className="flex-1 bg-red-500 text-white py-4 rounded-xl font-bold hover:bg-red-600 transition-colors flex items-center justify-center gap-2"
+            >
+              <Trash2 className="h-5 w-5" />
+              Eliminar
+            </button>
+            
+            <button
+              onClick={() => setIsEditing(true)}
+              className="flex-1 bg-blue-500 text-white py-4 rounded-xl font-bold hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+            >
+              <Edit className="h-5 w-5" />
+              Editar
+            </button>
+          </>
+        )}
+      </div>
+      
+      {/* ✅ CORRIGIDO: Modal de Visualização de Imagem */}
+      {showImageModal && modalImage && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
+          onClick={closeModal}
+        >
+          <div className="relative bg-white rounded-2xl p-4 max-w-sm max-h-[80vh] w-full">
+            <button
+              onClick={closeModal}
+              className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg z-10"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <img
+              src={modalImage}
+              alt={selectedItem.name}
+              className="w-full h-auto object-contain rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            />
+            {/* Info da peça na modal */}
+            <div className="mt-3 text-center">
+              <h3 className="font-semibold text-gray-800">{selectedItem.name}</h3>
+              <p className="text-sm text-gray-600">{selectedItem.category} • {selectedItem.color}</p>
+              {selectedItem.brand && (
+                <p className="text-xs text-gray-500 mt-1">{selectedItem.brand}</p>
+              )}
+              {selectedItem.tags && selectedItem.tags.length > 0 && (
+                <div className="flex flex-wrap justify-center gap-1 mt-2">
+                  {selectedItem.tags.slice(0, 3).map(tag => (
+                    <span key={tag} className="bg-orange-100 text-orange-600 px-2 py-1 rounded-full text-xs">
+                      {tag}
+                    </span>
+                  ))}
+                  {selectedItem.tags.length > 3 && (
+                    <span className="text-gray-400 text-xs">+{selectedItem.tags.length - 3}</span>
+                  )}
+                </div>
+              )}
+              
+              {/* ✅ Botões de ação na modal */}
+              <div className="flex gap-2 mt-3">
+                <button 
+                  onClick={() => {
+                    closeModal();
+                    setIsEditing(true);
+                  }}
+                  className="flex-1 bg-blue-500 text-white py-2 rounded-lg text-sm hover:bg-blue-600 transition-colors"
+                >
+                  Editar
+                </button>
+                <button 
+                  onClick={() => {
+                    closeModal();
+                    navigateToScreen('create-outfit', { preSelectedItem: selectedItem });
+                  }}
+                  className="flex-1 bg-green-500 text-white py-2 rounded-lg text-sm hover:bg-green-600 transition-colors"
+                >
+                  Criar Outfit
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Barra de navegação sempre presente */}
+      <BottomNavigation 
+        currentScreen="item-detail" 
+        navigateToScreen={navigateToScreen}
+      />
     </div>
   );
 };

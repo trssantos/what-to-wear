@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Camera, Upload, Sparkles, Zap, Heart, Tag, Save, Wand2 } from 'lucide-react';
+import { ArrowLeft, Camera, Upload, Sparkles, Zap, Heart, Tag, Save, Wand2, Loader2 } from 'lucide-react';
 import { useAppContext } from '../../contexts/AppContext';
 import { useGarmentAI } from '../../hooks/useGarmentAI';
-import { OPENAI_API_KEY } from '../../utils/constants';
+import { OPENAI_API_KEY, getClothingCategoriesByGender, COMMON_COLORS, AVAILABLE_TAGS, CONDITION_OPTIONS } from '../../utils/constants';
 import CameraCapture from '../shared/CameraCapture';
-import { CLOTHING_CATEGORIES, COMMON_COLORS, AVAILABLE_TAGS, CONDITION_OPTIONS } from '../../utils/constants';
+import BottomNavigation from '../shared/BottomNavigation';
 
 const AddItemScreen = ({ navigateToScreen, screenData }) => {
-  const { addWardrobeItem } = useAppContext();
-  const { generateGarmentMetadata } = useGarmentAI();
+  const { addWardrobeItem, userProfile } = useAppContext();
+  const { generateGarmentMetadataWithFormData, generateGarmentMetadata } = useGarmentAI();
   
   const [newItem, setNewItem] = useState({
     name: '',
@@ -25,9 +25,14 @@ const AddItemScreen = ({ navigateToScreen, screenData }) => {
   const [showCamera, setShowCamera] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isGeneratingMetadata, setIsGeneratingMetadata] = useState(false);
+  const [isAutoFilling, setIsAutoFilling] = useState(false); // NOVO
   const [isRevealed, setIsRevealed] = useState(false);
   const [metadataEditing, setMetadataEditing] = useState(false);
   const [customMetadata, setCustomMetadata] = useState('');
+  const [aiSuggestions, setAiSuggestions] = useState(null); // NOVO para armazenar sugestões
+
+  // Obter categorias baseadas no gênero do utilizador
+  const availableCategories = getClothingCategoriesByGender(userProfile?.gender);
 
   React.useEffect(() => {
     const timer = setTimeout(() => setIsRevealed(true), 100);
@@ -42,17 +47,15 @@ const AddItemScreen = ({ navigateToScreen, screenData }) => {
       setNewItem(prev => ({
         ...prev,
         imageUrl: screenData.imageUrl || prev.imageUrl,
-        name: screenData.smartData.name || prev.name,
-        category: screenData.smartData.category || prev.category,
-        color: screenData.smartData.color || prev.color,
-        tags: screenData.smartData.tags || prev.tags,
-        notes: 'Adicionada via Análise Rápida - Recomendação AI'
+        name: screenData.smartData.formData?.name || prev.name,
+        category: screenData.smartData.formData?.category || prev.category,
+        color: screenData.smartData.formData?.color || prev.color,
+        tags: screenData.smartData.formData?.suggestedTags || prev.tags,
+        notes: screenData.smartData.formData?.notes || 'Adicionada via Análise Rápida'
       }));
       
-      // Se não tem metadata AI ainda, gerar automaticamente
-      if (screenData.imageUrl && !screenData.smartData.aiMetadata && OPENAI_API_KEY) {
-        generateAIMetadata(screenData.imageUrl);
-      }
+      setCustomMetadata(screenData.smartData.aiMetadata || '');
+      setAiSuggestions(screenData.smartData);
     }
   }, [screenData]);
 
@@ -63,44 +66,148 @@ const AddItemScreen = ({ navigateToScreen, screenData }) => {
         alert('Por favor escolhe uma imagem menor que 5MB.');
         return;
       }
-      
+
+      setIsUploading(true);
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setNewItem({ ...newItem, imageUrl: e.target.result });
-        // Auto-generate metadata when image is uploaded
+      reader.onload = async (event) => {
+        const imageUrl = event.target.result;
+        setNewItem(prev => ({ ...prev, imageUrl }));
+        
+        // ✨ NOVO: Auto-gerar metadata e pré-preencher automaticamente
         if (OPENAI_API_KEY) {
-          generateAIMetadata(e.target.result);
+          await generateAutoFillData(imageUrl);
         }
+        
+        setIsUploading(false);
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleCameraCapture = (photoDataUrl) => {
-    setNewItem({ ...newItem, imageUrl: photoDataUrl });
+  const handleCameraCapture = async (imageUrl) => {
+    setNewItem(prev => ({ ...prev, imageUrl }));
     setShowCamera(false);
-    // Auto-generate metadata when photo is captured
-    if (OPENAI_API_KEY) {
-      generateAIMetadata(photoDataUrl);
-    }
-  };
-
-  const generateAIMetadata = async (imageData) => {
-    if (!OPENAI_API_KEY) return;
     
-    setIsGeneratingMetadata(true);
-    try {
-      const metadata = await generateGarmentMetadata(imageData, newItem);
-      setNewItem(prev => ({ ...prev, aiMetadata: metadata }));
-      console.log('✅ Metadata AI gerada:', metadata.substring(0, 100));
-    } catch (error) {
-      console.error('❌ Erro na geração de metadata:', error);
-      alert('Erro ao gerar análise AI: ' + error.message);
+    // ✨ NOVO: Auto-gerar metadata e pré-preencher automaticamente
+    if (OPENAI_API_KEY) {
+      await generateAutoFillData(imageUrl);
     }
-    setIsGeneratingMetadata(false);
   };
 
-  const handleTagToggle = (tag) => {
+  // ✨ NOVA FUNÇÃO: Gerar dados de auto-preenchimento
+  const generateAutoFillData = async (imageUrl) => {
+    if (!imageUrl) return;
+    
+    setIsAutoFilling(true);
+    
+    try {
+      console.log('🤖 Gerando auto-preenchimento...');
+      const aiData = await generateGarmentMetadataWithFormData(
+        imageUrl, 
+        userProfile, 
+        newItem
+      );
+      
+      console.log('✅ Dados AI recebidos:', aiData);
+      
+      // Pré-preencher os campos automaticamente
+      if (aiData.formData) {
+        setNewItem(prev => ({
+          ...prev,
+          name: aiData.formData.name || prev.name,
+          category: aiData.formData.category || prev.category,
+          color: aiData.formData.color || prev.color,
+          brand: aiData.formData.brand || prev.brand,
+          tags: aiData.formData.suggestedTags || prev.tags,
+          notes: aiData.formData.notes || prev.notes
+        }));
+      }
+      
+      // Definir metadata AI
+      if (aiData.aiMetadata) {
+        setCustomMetadata(aiData.aiMetadata);
+      }
+      
+      // Armazenar sugestões para mostrar ao utilizador
+      setAiSuggestions(aiData);
+      
+    } catch (error) {
+      console.error('❌ Erro no auto-preenchimento:', error);
+      // Em caso de erro, usar o método de metadata simples
+      try {
+        const simpleMetadata = await generateGarmentMetadata(imageUrl, newItem);
+        setCustomMetadata(simpleMetadata);
+      } catch (fallbackError) {
+        console.error('❌ Erro também no fallback:', fallbackError);
+      }
+    } finally {
+      setIsAutoFilling(false);
+    }
+  };
+
+  // Gerar metadata AI manualmente (botão)
+  const generateAIMetadata = async () => {
+    if (!newItem.imageUrl) {
+      alert('Adiciona uma imagem primeiro!');
+      return;
+    }
+
+    setIsGeneratingMetadata(true);
+    
+    try {
+      const metadata = await generateGarmentMetadata(newItem.imageUrl, newItem);
+      setCustomMetadata(metadata);
+      setNewItem(prev => ({ ...prev, aiMetadata: metadata }));
+    } catch (error) {
+      console.error('❌ Erro ao gerar metadata AI:', error);
+      alert('Erro ao gerar análise AI: ' + error.message);
+    } finally {
+      setIsGeneratingMetadata(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!newItem.name.trim()) {
+      alert('Por favor adiciona um nome para a peça.');
+      return;
+    }
+    
+    if (!newItem.category) {
+      alert('Por favor selecciona uma categoria.');
+      return;
+    }
+    
+    if (!newItem.imageUrl) {
+      alert('Por favor adiciona uma imagem da peça.');
+      return;
+    }
+
+    setIsUploading(true);
+    
+    try {
+      const itemToAdd = {
+        ...newItem,
+        aiMetadata: customMetadata || newItem.aiMetadata,
+        createdAt: new Date().toISOString()
+      };
+      
+      console.log('➕ Adicionando peça ao armário:', itemToAdd);
+      await addWardrobeItem(itemToAdd);
+      
+      alert('Peça adicionada com sucesso! ✨');
+      navigateToScreen('wardrobe');
+      
+    } catch (error) {
+      console.error('❌ Erro ao adicionar peça:', error);
+      alert('Erro ao adicionar peça: ' + error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const toggleTag = (tag) => {
     setNewItem(prev => ({
       ...prev,
       tags: prev.tags.includes(tag)
@@ -109,335 +216,351 @@ const AddItemScreen = ({ navigateToScreen, screenData }) => {
     }));
   };
 
-  const handleSave = async () => {
-    if (!newItem.name.trim()) {
-      alert('Por favor dá um nome à peça.');
-      return;
-    }
-
-    if (!newItem.category) {
-      alert('Por favor seleciona uma categoria.');
-      return;
-    }
-
-    setIsUploading(true);
-    
-    try {
-      const itemToSave = {
-        ...newItem,
-        aiMetadata: metadataEditing ? customMetadata : newItem.aiMetadata,
-        createdAt: new Date().toISOString()
-      };
-
-      console.log('💾 A guardar peça:', itemToSave.name);
-      await addWardrobeItem(itemToSave);
-      
-      console.log('✅ Peça guardada com sucesso');
-      
-      // Se veio da análise rápida, mostrar mensagem específica
-      if (screenData?.fromQuickAnalysis) {
-        alert('✨ Peça adicionada com sucesso baseada na análise rápida!');
-      }
-      
-      navigateToScreen('wardrobe');
-      
-    } catch (error) {
-      console.error('❌ Erro ao guardar peça:', error);
-      alert('Erro ao guardar a peça. Tenta novamente.');
-    }
-    
-    setIsUploading(false);
-  };
-
-  if (showCamera) {
-    return (
-      <CameraCapture
-        onCapture={handleCameraCapture}
-        onClose={() => setShowCamera(false)}
-      />
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-600 p-6">
-      <div className={`max-w-lg mx-auto transform transition-all duration-700 ${
-        isRevealed ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
-      }`}>
-        
+    <div className="min-h-screen bg-gradient-to-br from-orange-400 to-red-600 p-6 pb-24">
+      {showCamera && (
+        <CameraCapture
+          onCapture={handleCameraCapture}
+          onClose={() => setShowCamera(false)}
+        />
+      )}
+
+      <div className={`transform transition-all duration-1000 ${isRevealed ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-8 pt-8">
-          <div className="flex items-center">
-            <button 
-              onClick={() => navigateToScreen(screenData?.fromQuickAnalysis ? 'quick-analysis' : 'wardrobe')}
-              className="mr-4 p-3 bg-white bg-opacity-20 rounded-2xl text-white hover:bg-opacity-30 transition-all"
-            >
-              <ArrowLeft className="h-6 w-6" />
-            </button>
-            <div>
-              <h1 className="text-3xl font-black text-white">
-                {screenData?.fromQuickAnalysis ? 'Adicionar Smart' : 'Nova Peça'}
-              </h1>
-              {screenData?.fromQuickAnalysis && (
-                <p className="text-white/80 text-sm">Dados preenchidos pela análise IA</p>
-              )}
-            </div>
+        <div className="flex items-center justify-between mb-6">
+          <button onClick={() => navigateToScreen('wardrobe')} className="text-white">
+            <ArrowLeft className="h-6 w-6" />
+          </button>
+          <div className="flex items-center space-x-2 bg-black text-white px-4 py-2 rounded-full transform rotate-1">
+            <Sparkles className="h-4 w-4" />
+            <span className="font-bold tracking-wide text-sm">NOVA PEÇA</span>
           </div>
+          <div className="w-6" />
         </div>
 
-        {/* Notification para Smart Add */}
-        {screenData?.fromQuickAnalysis && (
-          <div className="mb-6 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-2xl p-4 text-white">
-            <div className="flex items-center space-x-2 mb-2">
-              <Sparkles className="h-5 w-5" />
-              <span className="font-bold">Adicionar Inteligente</span>
-            </div>
-            <p className="text-white/90 text-sm">
-              Dados extraídos automaticamente da análise. Confirma e ajusta se necessário.
-            </p>
-          </div>
-        )}
+        <h1 className="text-4xl font-black bg-gradient-to-r from-yellow-300 via-white to-orange-200 bg-clip-text text-transparent mb-8 transform -rotate-1 text-center">
+          ADICIONAR AO ARMÁRIO
+        </h1>
 
-        {/* Form */}
-        <div className="space-y-6">
-          
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Image Upload Section */}
-          <div className="bg-white rounded-3xl p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
-              <Camera className="h-5 w-5 text-orange-600" />
-              <span>Foto da Peça</span>
-              {screenData?.fromQuickAnalysis && (
-                <span className="ml-auto text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
-                  Auto-preenchida
-                </span>
-              )}
-            </h3>
-            
-            {newItem.imageUrl ? (
-              <div className="relative">
-                <img 
-                  src={newItem.imageUrl} 
-                  alt="Preview" 
-                  className="w-full h-48 object-cover rounded-2xl"
-                />
-                <button
-                  onClick={() => setNewItem({ ...newItem, imageUrl: null, aiMetadata: null })}
-                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm hover:bg-red-600 transition-colors"
-                >
-                  ×
-                </button>
-                
-                {/* AI Analysis Status */}
-                {OPENAI_API_KEY && (
-                  <div className="mt-3">
-                    {isGeneratingMetadata ? (
-                      <div className="flex items-center space-x-2 text-purple-600 bg-purple-50 p-3 rounded-xl">
-                        <Wand2 className="h-4 w-4 animate-spin" />
-                        <span className="text-sm">A IA está a analisar a peça...</span>
+          <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl">
+            <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+              <Camera className="h-5 w-5 mr-2" />
+              Foto da Peça
+            </h2>
+
+            {!newItem.imageUrl ? (
+              <div className="space-y-4">
+                <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center">
+                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">Adiciona uma foto da tua peça</p>
+                  
+                  <div className="flex gap-4 justify-center">
+                    <button
+                      type="button"
+                      onClick={() => setShowCamera(true)}
+                      className="bg-orange-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-orange-600 transition-colors flex items-center gap-2"
+                    >
+                      <Camera className="h-4 w-4" />
+                      Câmara
+                    </button>
+                    
+                    <label className="bg-blue-500 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-600 transition-colors cursor-pointer flex items-center gap-2">
+                      <Upload className="h-4 w-4" />
+                      Galeria
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="relative">
+                  <img
+                    src={newItem.imageUrl}
+                    alt="Peça selecionada"
+                    className="w-full h-64 object-cover rounded-xl"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setNewItem(prev => ({ ...prev, imageUrl: null }))}
+                    className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                {/* ✨ LOADING de auto-preenchimento */}
+                {isAutoFilling && (
+                  <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-xl">
+                    <div className="flex items-center">
+                      <Loader2 className="h-5 w-5 text-blue-500 animate-spin mr-3" />
+                      <div>
+                        <p className="text-blue-800 font-semibold">Analisando imagem com AI...</p>
+                        <p className="text-blue-600 text-sm">A pré-preencher automaticamente os campos</p>
                       </div>
-                    ) : newItem.aiMetadata ? (
-                      <div className="bg-green-50 p-3 rounded-xl">
-                        <div className="flex items-center space-x-2 text-green-600 mb-2">
-                          <Sparkles className="h-4 w-4" />
-                          <span className="text-sm font-bold">Análise IA concluída ✓</span>
-                        </div>
-                      </div>
-                    ) : !screenData?.fromQuickAnalysis && (
-                      <button
-                        onClick={() => generateAIMetadata(newItem.imageUrl)}
-                        className="w-full bg-purple-100 text-purple-700 p-3 rounded-xl font-bold flex items-center justify-center space-x-2 hover:bg-purple-200 transition-colors"
-                      >
-                        <Zap className="h-4 w-4" />
-                        <span>Gerar Análise IA</span>
-                      </button>
-                    )}
+                    </div>
+                  </div>
+                )}
+
+                {/* ✨ MOSTRAR confiança da AI se disponível */}
+                {aiSuggestions?.confidence && (
+                  <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded-xl">
+                    <p className="text-green-800 font-semibold">✨ Campos pré-preenchidos automaticamente!</p>
+                    <p className="text-green-600 text-sm">
+                      Confiança: Categoria {aiSuggestions.confidence.category}/10, 
+                      Cor {aiSuggestions.confidence.color}/10 
+                      - Confirma e ajusta se necessário
+                    </p>
                   </div>
                 )}
               </div>
-            ) : (
-              <div className="space-y-3">
-                <button 
-                  onClick={() => setShowCamera(true)}
-                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white p-4 rounded-2xl font-bold flex items-center justify-center space-x-2 hover:shadow-lg transform hover:scale-105 transition-all"
-                >
-                  <Camera className="h-5 w-5" />
-                  <span>Tirar Foto</span>
-                </button>
-                
-                <label className="block">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
-                  <div className="w-full bg-gray-100 text-gray-700 p-4 rounded-2xl font-bold flex items-center justify-center space-x-2 cursor-pointer hover:bg-gray-200 transition-colors">
-                    <Upload className="h-5 w-5" />
-                    <span>Carregar da Galeria</span>
-                  </div>
-                </label>
-              </div>
             )}
           </div>
 
-          {/* Basic Info */}
-          <div className="bg-white rounded-3xl p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
-              <Tag className="h-5 w-5 text-orange-600" />
-              <span>Informações Básicas</span>
-            </h3>
+          {/* ✨ Campos do formulário (com loading overlay durante auto-preenchimento) */}
+          <div className={`space-y-6 transition-opacity duration-300 ${isAutoFilling ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
             
-            <div className="space-y-4">
-              <div>
-                <label className="block text-gray-700 font-bold mb-2">Nome da Peça*</label>
-                <input
-                  type="text"
-                  value={newItem.name}
-                  onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
-                  className="w-full p-3 border-2 border-orange-200 rounded-2xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  placeholder="Ex: Camisa branca básica"
-                />
-              </div>
+            {/* Basic Info */}
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl">
+              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <Tag className="h-5 w-5 mr-2" />
+                Informações Básicas
+              </h2>
 
-              <div>
-                <label className="block text-gray-700 font-bold mb-2">Categoria*</label>
-                <select
-                  value={newItem.category}
-                  onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
-                  className="w-full p-3 border-2 border-orange-200 rounded-2xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                >
-                  <option value="">Seleciona uma categoria</option>
-                  {CLOTHING_CATEGORIES.map(category => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label className="block text-gray-700 font-bold mb-2">Cor Principal</label>
-                  <select
-                    value={newItem.color}
-                    onChange={(e) => setNewItem({ ...newItem, color: e.target.value })}
-                    className="w-full p-3 border-2 border-orange-200 rounded-2xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  >
-                    <option value="">Seleciona a cor</option>
-                    {COMMON_COLORS.map(color => (
-                      <option key={color} value={color}>{color}</option>
-                    ))}
-                  </select>
+                  <label className="block text-gray-700 font-semibold mb-2">
+                    Nome da Peça *
+                    {aiSuggestions?.formData?.name && (
+                      <span className="text-green-600 text-sm ml-2">✨ Sugerido pela AI</span>
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    value={newItem.name}
+                    onChange={(e) => setNewItem(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="ex: Camisa Azul Formal, Jeans Escuros..."
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    required
+                  />
                 </div>
 
-                <div>
-                  <label className="block text-gray-700 font-bold mb-2">Estado</label>
-                  <select
-                    value={newItem.condition}
-                    onChange={(e) => setNewItem({ ...newItem, condition: e.target.value })}
-                    className="w-full p-3 border-2 border-orange-200 rounded-2xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  >
-                    {CONDITION_OPTIONS.map(condition => (
-                      <option key={condition} value={condition}>{condition}</option>
-                    ))}
-                  </select>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-700 font-semibold mb-2">
+                      Categoria *
+                      {aiSuggestions?.formData?.category && (
+                        <span className="text-green-600 text-sm ml-2">✨ AI</span>
+                      )}
+                    </label>
+                    <select
+                      value={newItem.category}
+                      onChange={(e) => setNewItem(prev => ({ ...prev, category: e.target.value }))}
+                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                      required
+                    >
+                      <option value="">Seleccionar categoria</option>
+                      {availableCategories.map(category => (
+                        <option key={category} value={category}>{category}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-semibold mb-2">
+                      Cor *
+                      {aiSuggestions?.formData?.color && (
+                        <span className="text-green-600 text-sm ml-2">✨ AI</span>
+                      )}
+                    </label>
+                    <select
+                      value={newItem.color}
+                      onChange={(e) => setNewItem(prev => ({ ...prev, color: e.target.value }))}
+                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                      required
+                    >
+                      <option value="">Seleccionar cor</option>
+                      {COMMON_COLORS.map(color => (
+                        <option key={color} value={color}>{color}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-gray-700 font-semibold mb-2">
+                      Marca
+                      {aiSuggestions?.formData?.brand && (
+                        <span className="text-green-600 text-sm ml-2">✨ AI</span>
+                      )}
+                    </label>
+                    <input
+                      type="text"
+                      value={newItem.brand}
+                      onChange={(e) => setNewItem(prev => ({ ...prev, brand: e.target.value }))}
+                      placeholder="ex: Zara, H&M, Nike..."
+                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 font-semibold mb-2">Condição</label>
+                    <select
+                      value={newItem.condition}
+                      onChange={(e) => setNewItem(prev => ({ ...prev, condition: e.target.value }))}
+                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    >
+                      {CONDITION_OPTIONS.map(condition => (
+                        <option key={condition} value={condition}>{condition}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
               </div>
+            </div>
 
-              <div>
-                <label className="block text-gray-700 font-bold mb-2">Marca (opcional)</label>
-                <input
-                  type="text"
-                  value={newItem.brand}
-                  onChange={(e) => setNewItem({ ...newItem, brand: e.target.value })}
-                  className="w-full p-3 border-2 border-orange-200 rounded-2xl focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  placeholder="Ex: Zara, H&M, Nike..."
-                />
+            {/* Tags */}
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl">
+              <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <Heart className="h-5 w-5 mr-2" />
+                Tags e Estilo
+                {aiSuggestions?.formData?.suggestedTags?.length > 0 && (
+                  <span className="text-green-600 text-sm ml-2">✨ Sugeridas pela AI</span>
+                )}
+              </h2>
+
+              <div className="flex flex-wrap gap-2">
+                {AVAILABLE_TAGS.map(tag => (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => toggleTag(tag)}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+                      newItem.tags.includes(tag)
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    {tag}
+                  </button>
+                ))}
               </div>
-            </div>
-          </div>
 
-          {/* Tags */}
-          <div className="bg-white rounded-3xl p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Tags de Estilo</h3>
-            <div className="grid grid-cols-3 gap-2">
-              {AVAILABLE_TAGS.map(tag => (
-                <button
-                  key={tag}
-                  onClick={() => handleTagToggle(tag)}
-                  className={`p-2 rounded-xl text-sm font-bold transition-all ${
-                    newItem.tags.includes(tag)
-                      ? 'bg-orange-500 text-white shadow-lg'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {tag}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* AI Metadata Section */}
-          {newItem.aiMetadata && (
-            <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-3xl p-6 shadow-2xl border border-purple-200">
-              <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center space-x-2">
-                <Sparkles className="h-5 w-5 text-purple-600" />
-                <span>Análise IA da Peça</span>
-                <button
-                  onClick={() => setMetadataEditing(!metadataEditing)}
-                  className="ml-auto text-sm bg-purple-500 text-white px-3 py-1 rounded-full hover:bg-purple-600 transition-colors"
-                >
-                  {metadataEditing ? 'Cancelar' : 'Editar'}
-                </button>
-              </h3>
-              
-              {metadataEditing ? (
-                <textarea
-                  value={customMetadata}
-                  onChange={(e) => setCustomMetadata(e.target.value)}
-                  className="w-full h-32 p-3 border-2 border-purple-200 rounded-2xl focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                  placeholder="Edita a análise da IA..."
-                />
-              ) : (
-                <div className="bg-white rounded-2xl p-4">
-                  <p className="text-gray-700 text-sm leading-relaxed">
-                    {newItem.aiMetadata}
-                  </p>
+              {newItem.tags.length > 0 && (
+                <div className="mt-4 p-3 bg-orange-50 rounded-xl">
+                  <p className="text-orange-800 font-medium">Tags selecionadas:</p>
+                  <p className="text-orange-600">{newItem.tags.join(', ')}</p>
                 </div>
               )}
             </div>
-          )}
 
-          {/* Notes */}
-          <div className="bg-white rounded-3xl p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-gray-800 mb-4">Notas Pessoais</h3>
-            <textarea
-              value={newItem.notes}
-              onChange={(e) => setNewItem({ ...newItem, notes: e.target.value })}
-              className="w-full h-24 p-3 border-2 border-orange-200 rounded-2xl focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
-              placeholder="Observações sobre a peça, ocasiões de uso, combinações..."
-            />
+            {/* Notes */}
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl">
+              <h2 className="text-xl font-bold text-gray-800 mb-4">Notas</h2>
+              <textarea
+                value={newItem.notes}
+                onChange={(e) => setNewItem(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Notas adicionais sobre a peça..."
+                rows={3}
+                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              />
+            </div>
+
+            {/* AI Metadata */}
+            <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-800 flex items-center">
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  Análise AI
+                </h2>
+                
+                {newItem.imageUrl && !isAutoFilling && (
+                  <button
+                    type="button"
+                    onClick={generateAIMetadata}
+                    disabled={isGeneratingMetadata}
+                    className="bg-purple-500 text-white px-4 py-2 rounded-xl font-bold hover:bg-purple-600 transition-colors flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {isGeneratingMetadata ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Wand2 className="h-4 w-4" />
+                    )}
+                    {isGeneratingMetadata ? 'Analisando...' : 'Gerar Análise'}
+                  </button>
+                )}
+              </div>
+
+              {customMetadata ? (
+                <div className="space-y-3">
+                  <div className="p-4 bg-purple-50 rounded-xl border-l-4 border-purple-400">
+                    <p className="text-purple-800">{customMetadata}</p>
+                  </div>
+                  
+                  {aiSuggestions?.confidence && (
+                    <div className="text-sm text-gray-600">
+                      <p>Confiança geral da análise: {aiSuggestions.confidence.overall}/10</p>
+                    </div>
+                  )}
+                </div>
+              ) : isAutoFilling ? (
+                <div className="flex items-center justify-center p-8 text-gray-500">
+                  <Loader2 className="h-6 w-6 animate-spin mr-3" />
+                  <span>Gerando análise AI...</span>
+                </div>
+              ) : (
+                <div className="p-4 bg-gray-50 rounded-xl text-center text-gray-500">
+                  <Sparkles className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p>Adiciona uma imagem para gerar análise AI automática</p>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Save Button */}
-          <button
-            onClick={handleSave}
-            disabled={isUploading || !newItem.name.trim() || !newItem.category}
-            className="w-full bg-gradient-to-r from-orange-500 to-red-600 text-white py-4 rounded-3xl font-black text-lg flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed transform transition-all hover:shadow-2xl hover:scale-105 active:scale-95"
-          >
-            {isUploading ? (
-              <>
-                <div className="animate-spin h-5 w-5 border-2 border-white border-t-transparent rounded-full"></div>
-                <span>A guardar...</span>
-              </>
-            ) : (
-              <>
-                <Save className="h-5 w-5" />
-                <span>{screenData?.fromQuickAnalysis ? 'Confirmar & Adicionar' : 'Guardar Peça'}</span>
-              </>
-            )}
-          </button>
-
-          <div className="pb-8"></div>
-        </div>
+          {/* Submit Button */}
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={() => navigateToScreen('wardrobe')}
+              className="flex-1 bg-gray-500 text-white py-4 rounded-xl font-bold hover:bg-gray-600 transition-colors"
+            >
+              Cancelar
+            </button>
+            
+            <button
+              type="submit"
+              disabled={isUploading || isAutoFilling}
+              className="flex-1 bg-orange-500 text-white py-4 rounded-xl font-bold hover:bg-orange-600 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isUploading ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className="h-5 w-5" />
+                  Adicionar ao Armário
+                </>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
+      
+      {/* ✨ NOVO: Barra de navegação sempre presente */}
+      <BottomNavigation 
+        currentScreen="add-item" 
+        navigateToScreen={navigateToScreen}
+      />
     </div>
   );
 };
