@@ -156,184 +156,331 @@ Responde em formato de consulta profissional, como se fosses um stylist real a a
   const startConsultation = async (service) => {
     setActiveService(service);
     setIsGenerating(true);
-
+  
     try {
+      // Contexto do gênero
+      const genderContext = userProfile?.gender ? `
+  PERFIL DO UTILIZADOR:
+  - Gênero: ${userProfile.gender}
+  
+  INSTRUÇÕES ESPECÍFICAS POR GÊNERO:
+  ${userProfile.gender === 'female' ? `
+  - PRIORIZAR: Styling feminino, acessórios como brincos, colares, pulseiras, anéis
+  - INCLUIR: Recomendações de maquilhagem, produtos para cabelo feminino, sapatos femininos
+  - FOCAR: Feminilidade, elegância, versatilidade no guarda-roupa feminino
+  - ACESSÓRIOS: Joias, carteiras, lenços, sapatos de salto, rasteiras, ténis femininos
+  ` : userProfile.gender === 'male' ? `
+  - PRIORIZAR: Styling masculino, acessórios como relógios, cintos, sapatos formais
+  - INCLUIR: Grooming masculino, produtos para cabelo, dress codes profissionais
+  - FOCAR: Masculinidade, sophistication, versatilidade no guarda-roupa masculino  
+  - ACESSÓRIOS: Relógios, cintos de couro, sapatos formais/casual, carteiras masculinas
+  ` : `
+  - ADAPTAR: Styling neutro e inclusivo adequado a qualquer expressão de gênero
+  - INCLUIR: Opções versáteis e acessórios neutros
+  - FOCAR: Versatilidade e comfort para todas as expressões
+  `}
+  ` : '';
+  
       let prompt;
       
       switch (service.id) {
         case 'style-audit':
           prompt = `Como personal stylist expert, realiza uma auditoria completa de estilo para este cliente.
-
-DADOS COMPLETOS:
-ARMÁRIO (${wardrobe.length} peças):
-${wardrobe.map(item => `- ${item.name} (${item.category}, ${item.color}${item.brand ? ', ' + item.brand : ''}) - ${item.condition || 'N/A'} - Tags: ${item.tags?.join(', ') || 'N/A'}`).join('\n')}
-
-OUTFITS (${outfits.length}):
-${outfits.map(outfit => `- ${outfit.name} (${outfit.occasion || 'casual'}) - Peças: ${outfit.pieces ? Object.values(outfit.pieces).filter(Boolean).join(', ') : 'N/A'}`).join('\n')}
-
-PERFIL:
-${userProfile ? `
-- Estação de cor: ${userProfile.colorSeason || 'N/A'}
-- Body shape: ${userProfile.bodyShape || 'N/A'}
-- Análises feitas: ${userProfile.analyzedAt || 'N/A'}
-` : 'Perfil básico'}
-
-AUDITORIA COMPLETA:
-
-1. **DIAGNÓSTICO DO ARMÁRIO**
-   - Análise por categoria (força/fraqueza)
-   - Quality assessment
-   - Versatilidade score
-   - Investment pieces vs fast fashion
-
-2. **ESTILO ATUAL**
-   - Identificação do estilo predominante
-   - Consistência e coerência
-   - Signature pieces
-   - Personal brand clarity
-
-3. **GAPS CRÍTICOS**
-   - Peças essenciais em falta
-   - Categorias sub-representadas
-   - Ocasiões mal cobertas
-   - Problemas de fit/proporção
-
-4. **POTENCIAL DE MELHORIA**
-   - Onde investir primeiro
-   - Quick wins (mudanças rápidas)
-   - Long-term development
-   - Budget allocation
-
-5. **PLANO DE DESENVOLVIMENTO 90 DIAS**
-   - Mês 1: Foundation building
-   - Mês 2: Style refinement
-   - Mês 3: Signature development
-   - Milestones específicos
-
-6. **ORÇAMENTO OTIMIZADO**
-   - Investimentos por prioridade
-   - Timeline de compras
-   - ROI esperado por peça
-   - Sustainable options
-
-Sê específico, prático e actionable. Usa dados concretos.`;
+  
+  ${genderContext}
+  
+  DADOS COMPLETOS:
+  ARMÁRIO (${wardrobe.length} peças):
+  ${wardrobe.map(item => `- ${item.name} (${item.category}, ${item.color}${item.brand ? ', ' + item.brand : ''}) - ${item.condition || 'N/A'} - Tags: ${item.tags?.join(', ') || 'N/A'}`).join('\n')}
+  
+  OUTFITS (${outfits.length}):
+  ${outfits.map(outfit => `- ${outfit.name} (${outfit.occasion || 'casual'}) - Peças: ${outfit.pieces ? Object.values(outfit.pieces).filter(Boolean).join(', ') : 'N/A'}`).join('\n')}
+  
+  PERFIL:
+  ${userProfile ? `
+  - Estação de cor: ${userProfile.colorSeason || 'N/A'}
+  - Body shape: ${userProfile.bodyShape || 'N/A'}
+  - Análises feitas: ${userProfile.analyzedAt || 'N/A'}
+  ` : 'Perfil básico'}
+  
+  AUDITORIA COMPLETA:
+  
+  1. **DIAGNÓSTICO DO ARMÁRIO**
+     - Análise por categoria (força/fraqueza) considerando o gênero
+     - Quality assessment
+     - Versatilidade score
+     - Investment pieces vs fast fashion
+  
+  2. **ESTILO ATUAL**
+     - Identificação do estilo predominante para o gênero
+     - Consistência e coerência
+     - Signature pieces apropriadas
+     - Personal brand clarity
+  
+  3. **GAPS CRÍTICOS**
+     - Peças essenciais em falta específicas para o gênero
+     - Categorias sub-representadas
+     - Ocasiões mal cobertas
+     - Acessórios em falta (joias/relógios/etc baseado no gênero)
+  
+  4. **POTENCIAL DE MELHORIA**
+     - Onde investir primeiro considerando o gênero
+     - Quick wins (mudanças rápidas)
+     - Long-term development
+     - Budget allocation para acessórios específicos
+  
+  5. **PLANO DE DESENVOLVIMENTO 90 DIAS**
+     - Mês 1: Foundation building com basics do gênero
+     - Mês 2: Style refinement e acessórios
+     - Mês 3: Signature development
+     - Milestones específicos
+  
+  6. **ORÇAMENTO OTIMIZADO**
+     - Investimentos por prioridade baseados no gênero
+     - Timeline de compras
+     - ROI esperado por peça
+     - Sustainable options
+  
+  Sê específico, prático e actionable. Usa dados concretos considerando sempre o gênero do cliente.`;
           break;
-
+  
         case 'signature-style':
           prompt = `Desenvolve um signature style único para este cliente baseado na análise completa.
-
-[Include wardrobe and profile data...]
-
-CRIAÇÃO DE SIGNATURE STYLE:
-
-1. **BRAND PESSOAL**
-   - 3 palavras que definem o estilo
-   - Mood board conceitual
-   - Target audience (como quer ser percebido)
-   - Core values refletidos no estilo
-
-2. **SIGNATURE ELEMENTS**
-   - Cores assinatura (3-5 cores)
-   - Silhuetas preferidas
-   - Texturas características
-   - Acessórios marcantes
-
-3. **LOOKS ASSINATURA**
-   - 5 outfits icónicos usando o armário
-   - Fórmulas de styling reproduzíveis
-   - Peças statement vs basics
-   - Variações sazonais
-
-4. **GUIDELINES DE STYLING**
-   - Regras de combinação
-   - Proporções ideais
-   - Color blocking strategies
-   - Layering techniques
-
-5. **OCASIÕES MASTER**
-   - Work signature
-   - Weekend signature  
-   - Evening signature
-   - Travel signature
-   - Special events signature
-
-Cria um estilo distintivo e memorável.`;
+  
+  ${genderContext}
+  
+  DADOS COMPLETOS:
+  ARMÁRIO (${wardrobe.length} peças):
+  ${wardrobe.map(item => `- ${item.name} (${item.category}, ${item.color}${item.brand ? ', ' + item.brand : ''}) - Tags: ${item.tags?.join(', ') || 'N/A'}`).join('\n')}
+  
+  CRIAÇÃO DE SIGNATURE STYLE:
+  
+  1. **BRAND PESSOAL**
+     - 3 palavras que definem o estilo considerando o gênero
+     - Mood board conceitual
+     - Target audience (como quer ser percebido)
+     - Core values refletidos no estilo
+  
+  2. **SIGNATURE ELEMENTS**
+     - Cores assinatura (3-5 cores)
+     - Silhuetas preferidas para o gênero
+     - Texturas características
+     - Acessórios marcantes específicos (joias/relógios baseado no gênero)
+  
+  3. **LOOKS ASSINATURA**
+     - 5 outfits icónicos usando o armário
+     - Fórmulas de styling reproduzíveis
+     - Peças statement vs basics para o gênero
+     - Variações sazonais
+  
+  4. **ACESSÓRIOS ESSENCIAIS**
+     - Lista de must-have baseada no gênero
+     - Investment pieces prioritárias
+     - Como incorporar no dia-a-dia
+     - Budget allocation
+  
+  5. **STYLE EVOLUTION**
+     - Como manter consistência
+     - Adaptação a diferentes fases da vida
+     - Sustainable approach
+  
+  Foca em criar uma identidade visual forte e apropriada para o gênero.`;
           break;
-
-        case 'wardrobe-transformation':
-          prompt = `Cria um plano completo de transformação de armário.
-
-[Include all data...]
-
-TRANSFORMAÇÃO ESTRATÉGICA:
-
-1. **AUDIT & DECLUTTER**
-   - Keep/Donate/Alter analysis
-   - Cost per wear calculation
-   - Emotional attachment assessment
-   - Quality vs sentimental value
-
-2. **FOUNDATION REBUILD**
-   - Essential basics list
-   - Investment pieces priority
-   - Color palette refinement
-   - Fit optimization needs
-
-3. **CRONOGRAMA DE RENOVAÇÃO**
-   - Fase 1 (Imediata): Essentials
-   - Fase 2 (3 meses): Core building
-   - Fase 3 (6 meses): Style refinement
-   - Fase 4 (12 meses): Signature pieces
-
-4. **MAXIMIZAÇÃO DE COMBINAÇÕES**
-   - Cost per wear optimization
-   - Mix & match strategies
-   - Capsule wardrobe principles
-   - Versatility multiplication
-
-5. **INVESTMENT STRATEGY**
-   - High ROI pieces
-   - Timeless vs trendy allocation
-   - Quality indicators
-   - Price per wear targets
-
-6. **SUSTAINABLE APPROACH**
-   - Conscious consumption
-   - Quality over quantity
-   - Circular fashion integration
-   - Local vs international brands
-
-Foca em transformação gradual mas impactante.`;
+  
+        case 'color-consultation':
+          prompt = `Realiza uma consultoria completa de cores personalizada.
+  
+  ${genderContext}
+  
+  ARMÁRIO ATUAL:
+  ${wardrobe.map(item => `- ${item.name} (${item.category}, ${item.color})`).join('\n')}
+  
+  CONSULTORIA DE CORES:
+  
+  1. **ANÁLISE DAS CORES EXISTENTES**
+     - Palette atual do armário
+     - Harmonias e conflitos
+     - Missing colors importantes
+  
+  2. **CORES ESTRATÉGICAS**
+     - 5 cores principais para o gênero
+     - Como combinar eficazmente
+     - Seasonal adaptations
+  
+  3. **RECOMENDAÇÕES DE COMPRA**
+     - Próximas cores a investir
+     - Peças prioritárias por cor
+     - Budget allocation
+  
+  4. **STYLING POR COR**
+     - Como usar cada cor eficazmente para o gênero
+     - Combinações winning
+     - Acessórios que complementam
+  
+  ${userProfile.gender === 'female' ? `
+  5. **MAQUILHAGEM & CORES**
+     - Cores de maquilhagem que harmonizam
+     - Looks day vs night
+     - Seasonal adjustments
+  ` : userProfile.gender === 'male' ? `
+  5. **GROOMING & CORES**
+     - Como cores influenciam grooming choices
+     - Professional vs casual color rules
+     - Accessories coordination
+  ` : ''}
+  
+  Sê específico sobre como implementar cada recomendação.`;
           break;
-
+  
+        case 'occasion-styling':
+          prompt = `Cria um guia completo de styling para diferentes ocasiões.
+  
+  ${genderContext}
+  
+  ARMÁRIO:
+  ${wardrobe.slice(0, 15).map(item => `- ${item.name} (${item.category}, ${item.color})`).join('\n')}
+  
+  STYLING GUIDE POR OCASIÃO:
+  
+  1. **WORK/PROFESSIONAL**
+     - Outfits base usando armário atual
+     - Power dressing tips para o gênero
+     - Acessórios profissionais necessários
+     - Do's and don'ts
+  
+  2. **CASUAL/WEEKEND**
+     - Looks comfortable mas stylish
+     - Mix & match opportunities
+     - Versatile pieces destacadas
+  
+  3. **SOCIAL EVENTS**
+     - Date nights, jantares, eventos
+     - How to elevate basic pieces
+     - Statement accessories por gênero
+  
+  4. **SPECIAL OCCASIONS**
+     - Weddings, parties, celebrations
+     - Investment pieces needed
+     - Rental vs purchase decisions
+  
+  ${userProfile.gender === 'female' ? `
+  5. **BEAUTY COORDINATION**
+     - Maquilhagem adequada para cada ocasião
+     - Hair styling suggestions
+     - Jewelry combinations
+  ` : userProfile.gender === 'male' ? `
+  5. **GROOMING COORDINATION**
+     - Styling adequado para cada ocasião
+     - Watch and accessory rules
+     - Shoe selection guide
+  ` : ''}
+  
+  Para cada ocasião, lista outfits específicos e justifica as escolhas.`;
+          break;
+  
+        case 'lifestyle-styling':
+          prompt = `Adapta o estilo ao lifestyle específico do cliente.
+  
+  ${genderContext}
+  
+  ANÁLISE LIFESTYLE:
+  
+  1. **DAILY ROUTINE OPTIMIZATION**
+     - Peças que funcionam para rotina diária
+     - Versatility maximization
+     - Time-saving combinations
+  
+  2. **COMFORT MEETS STYLE**
+     - How to look good feeling comfortable
+     - Fabric recommendations por gênero
+     - Functional fashion choices
+  
+  3. **SUSTAINABLE APPROACH**
+     - Cost-per-wear analysis
+     - Quality investment pieces
+     - Timeless vs trendy balance
+  
+  4. **STYLE EFFICIENCY**
+     - Capsule wardrobe principles
+     - Mix & match formulas
+     - Shopping strategy
+  
+  ${userProfile.gender === 'female' ? `
+  5. **FEMININE LIFESTYLE INTEGRATION**
+     - How femininity adapts to lifestyle
+     - Practical beauty routines
+     - Accessory organization
+  ` : userProfile.gender === 'male' ? `
+  5. **MASCULINE LIFESTYLE INTEGRATION**
+     - Professional masculine presence
+     - Practical grooming routines
+     - Accessory essentials
+  ` : ''}
+  
+  Foca em soluções práticas e implementáveis baseadas no gênero.`;
+          break;
+  
+        case 'trend-integration':
+          prompt = `Guia para integração inteligente de tendências no estilo pessoal.
+  
+  ${genderContext}
+  
+  TREND INTEGRATION STRATEGY:
+  
+  1. **CURRENT TRENDS ANALYSIS**
+     - Tendências relevantes para o gênero
+     - Filter through personal style
+     - Investment vs fast fashion decisions
+  
+  2. **ADAPTATION TECHNIQUES**
+     - How to try trends without commitment
+     - Accessories as trend vehicles
+     - Seasonal trend incorporation
+  
+  3. **BUDGET-SMART TRENDING**
+     - High-low mixing strategies
+     - Where to splurge vs save
+     - Rental and borrowing options
+  
+  4. **PERSONAL STYLE FILTER**
+     - Which trends align with cliente
+     - How to adapt trends to fit existing wardrobe
+     - Long-term style consistency
+  
+  ${userProfile.gender === 'female' ? `
+  5. **FEMININE TREND ADAPTATION**
+     - How feminine trends work for this client
+     - Beauty trends coordination
+     - Accessory trend integration
+  ` : userProfile.gender === 'male' ? `
+  5. **MASCULINE TREND ADAPTATION**
+     - How masculine trends work for this client
+     - Grooming trend coordination
+     - Accessory trend integration
+  ` : ''}
+  
+  Sempre mantém coerência com o estilo pessoal e gênero.`;
+          break;
+  
         default:
-          prompt = `Realiza uma consultoria especializada em ${service.name} para este cliente.
-
-[Include relevant data...]
-
-Fornece advice específico, actionable e personalizado para esta área de expertise.`;
+          prompt = `Como personal stylist expert, fornece consultoria personalizada considerando o gênero e estilo do cliente.`;
       }
-
+  
       const response = await callOpenAI([
         {
           role: 'system',
-          content: `És um personal stylist de elite com expertise em ${service.name}. Forneças consultorias detalhadas, práticas e transformadoras.`
+          content: 'És um personal stylist profissional de elite com 15 anos de experiência. Fazes diagnósticos precisos e recommendations estratégicas considerando sempre o gênero do cliente.'
         },
         {
           role: 'user',
           content: prompt
         }
       ]);
-
-      setConsultation({
-        service: service,
-        content: response,
-        timestamp: new Date(),
-        recommendations: extractRecommendations(response)
-      });
-
+  
+      setConsultationResult(response);
     } catch (error) {
-      alert('Erro na consultoria: ' + error.message);
+      console.error('Error in consultation:', error);
+      setConsultationResult('Erro na consultoria. Tenta novamente.');
     }
     setIsGenerating(false);
   };

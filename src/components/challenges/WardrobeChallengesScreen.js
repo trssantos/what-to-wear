@@ -4,7 +4,7 @@ import { useAppContext } from '../../contexts/AppContext';
 import { useOpenAI } from '../../hooks/useOpenAI';
 
 const WardrobeChallengesScreen = ({ navigateToScreen, openaiApiKey }) => {
-  const { wardrobe, outfits, addOutfit } = useAppContext();
+  const { wardrobe, outfits, addOutfit, userProfile } = useAppContext();
   const { callOpenAI } = useOpenAI();
   
   const [activeChallenges, setActiveChallenges] = useState([]);
@@ -105,58 +105,115 @@ const WardrobeChallengesScreen = ({ navigateToScreen, openaiApiKey }) => {
       lastUpdated: new Date().toISOString()
     };
     localStorage.setItem('whatToWear_challengeProgress', JSON.stringify(progress));
-    setActiveChallenges(active);
-    setCompletedChallenges(completed);
-    setUserLevel(level);
-    setUserXP(xp);
+  };
+
+  const canStartChallenge = (template) => {
+    const wardrobeCount = wardrobe.length;
+    if (template.requirements.minPieces && wardrobeCount < template.requirements.minPieces) {
+      return false;
+    }
+    if (template.requirements.maxPieces && wardrobeCount > template.requirements.maxPieces) {
+      // For maxPieces challenges, we'll select a subset, so it's always possible
+      return wardrobeCount >= 5; // Minimum for any challenge
+    }
+    return true;
+  };
+
+  const getDifficultyColor = (difficulty) => {
+    switch (difficulty) {
+      case 'Fácil':
+        return 'bg-green-100 text-green-800';
+      case 'Médio':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'Difícil':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
 
   const startChallenge = async (template) => {
     try {
-      let challengeData;
+      console.log('🎯 Iniciando desafio:', template.name);
       
-      if (template.type === 'outfit-creation') {
-        challengeData = await generateOutfitChallenge(template);
-      } else if (template.type === 'minimalist') {
-        challengeData = await generateMinimalistChallenge(template);
-      } else if (template.type === 'color-focused') {
-        challengeData = await generateColorChallenge(template);
-      } else {
-        challengeData = await generateGenericChallenge(template);
+      let challengeData;
+      switch (template.type) {
+        case 'minimalist':
+          challengeData = await generateMinimalistChallenge(template);
+          break;
+        case 'color-focused':
+          challengeData = await generateColorChallenge(template);
+          break;
+        default:
+          challengeData = await generateStandardChallenge(template);
       }
 
       const newChallenge = {
-        ...template,
         id: `${template.id}-${Date.now()}`,
+        name: template.name,
+        description: template.description,
+        difficulty: template.difficulty,
+        type: template.type,
+        xp: template.xp,
+        duration: template.duration,
+        tasks: challengeData.tasks || [],
+        completedTasks: [],
         startDate: new Date().toISOString(),
         progress: 0,
-        totalTasks: challengeData.tasks.length,
-        tasks: challengeData.tasks,
-        completedTasks: [],
-        isActive: true
+        totalTasks: challengeData.tasks?.length || template.duration
       };
 
-      const newActive = [...activeChallenges, newChallenge];
-      saveProgress(newActive, completedChallenges, userLevel, userXP);
+      const updatedActiveChallenges = [...activeChallenges, newChallenge];
+      setActiveChallenges(updatedActiveChallenges);
+      saveProgress(updatedActiveChallenges, completedChallenges, userLevel, userXP);
+      
       setShowChallengeModal(false);
+      alert(`Desafio "${template.name}" iniciado com sucesso! 🎉`);
+
     } catch (error) {
-      alert('Erro ao criar desafio: ' + error.message);
+      console.error('❌ Erro ao iniciar desafio:', error);
+      alert('Erro ao criar desafio. Tenta novamente.');
     }
   };
 
-  const generateOutfitChallenge = async (template) => {
-    const prompt = `Como personal stylist, cria um desafio "${template.name}" de ${template.duration} dias.
+  const generateStandardChallenge = async (template) => {
+    // Contexto do gênero
+    const genderContext = userProfile?.gender ? `
+PERFIL DO UTILIZADOR:
+- Gênero: ${userProfile.gender}
+
+DESAFIOS ESPECÍFICOS POR GÊNERO:
+${userProfile.gender === 'female' ? `
+- INCLUIR: Desafios com acessórios femininos (joias, lenços, sapatos)
+- FOCAR: Styling feminino, layering feminino, ocasiões femininas
+- VARIAÇÕES: Looks day-to-night, maquilhagem coordination, mixing feminine pieces
+- ACESSÓRIOS: Challenges com brincos, colares, pulseiras, carteiras femininas
+` : userProfile.gender === 'male' ? `
+- INCLUIR: Desafios com acessórios masculinos (relógios, cintos, sapatos formais)
+- FOCAR: Styling masculino, dress codes, grooming coordination
+- VARIAÇÕES: Business casual, smart casual, formal variations
+- ACESSÓRIOS: Challenges com relógios, cintos, sapatos, carteiras masculinas
+` : `
+- INCLUIR: Desafios neutros e inclusivos
+- FOCAR: Styling versátil adequado a qualquer expressão de gênero
+- VARIAÇÕES: Looks adaptáveis e acessórios neutros
+`}
+` : '';
+
+    const prompt = `Cria um desafio "${template.name}" de ${template.duration} dias usando o armário disponível.
+
+${genderContext}
 
 ARMÁRIO DISPONÍVEL:
-${wardrobe.map(item => `- ${item.name} (${item.category}, ${item.color})`).join('\n')}
+${wardrobe.map(item => `- ${item.name} (${item.category}, ${item.color}${item.brand ? ', ' + item.brand : ''}) - Tags: ${item.tags?.join(', ') || 'N/A'}`).join('\n')}
 
-Cria ${template.duration} tasks específicas, cada uma com:
-1. Nome criativo do outfit
+Para cada dia, cria:
+1. Nome criativo do outfit adaptado ao gênero
 2. Peças específicas a usar
 3. Ocasião/tema
-4. Desafio específico (ex: usar peça que nunca usaste)
+4. Desafio específico considerando o gênero (ex: usar peça que nunca usaste, accessorize femininely/masculinely)
 
-Varia estilos, ocasiões e combinações. Garante que cada outfit é único.
+Varia estilos, ocasiões e combinações. Garante que cada outfit é único e apropriado para o gênero.
 
 Formato JSON:
 {
@@ -166,8 +223,8 @@ Formato JSON:
       "name": "nome do outfit",
       "pieces": ["peça1", "peça2"],
       "occasion": "ocasião",
-      "challenge": "desafio específico",
-      "tips": "dicas"
+      "challenge": "desafio específico considerando gênero",
+      "tips": "dicas específicas baseadas no gênero"
     }
   ]
 }`;
@@ -175,7 +232,7 @@ Formato JSON:
     const response = await callOpenAI([
       {
         role: 'system',
-        content: 'És um personal stylist que cria desafios de moda criativos e motivadores.'
+        content: 'És um personal stylist que cria desafios de moda criativos e motivadores adaptados ao gênero do cliente.'
       },
       {
         role: 'user',
@@ -193,20 +250,42 @@ Formato JSON:
   const generateMinimalistChallenge = async (template) => {
     const selectedPieces = wardrobe.slice(0, 10); // Simplified selection
     
+    // Contexto do gênero
+    const genderContext = userProfile?.gender ? `
+PERFIL DO UTILIZADOR:
+- Gênero: ${userProfile.gender}
+
+MINIMALISMO ESPECÍFICO POR GÊNERO:
+${userProfile.gender === 'female' ? `
+- FOCAR: Versatilidade feminina com peças-chave, accessories rotation
+- INCLUIR: Como maximizar feminilidade com poucas peças
+- STYLING: Techniques femininas de layering e accessorizing
+` : userProfile.gender === 'male' ? `
+- FOCAR: Essenciais masculinos versáteis, classic combinations
+- INCLUIR: Como manter sophistication masculina com minimalismo
+- STYLING: Técnicas masculinas de mixing formal/casual
+` : `
+- FOCAR: Versatilidade neutra e inclusiva
+- INCLUIR: Peças adaptáveis a diferentes expressões
+`}
+` : '';
+    
     const prompt = `Cria um desafio minimalista de 7 dias usando APENAS estas 10 peças:
+
+${genderContext}
 
 PEÇAS DISPONÍVEIS:
 ${selectedPieces.map(item => `- ${item.name} (${item.category}, ${item.color})`).join('\n')}
 
 Para cada dia, cria um outfit diferente usando 3-5 destas peças.
-Foca em versatilidade e criatividade com limitações.
+Foca em versatilidade e criatividade com limitações, adaptado ao gênero.
 
 Formato JSON igual ao anterior.`;
 
     const response = await callOpenAI([
       {
         role: 'system',
-        content: 'És um especialista em moda minimalista e versatilidade.'
+        content: 'És um especialista em moda minimalista e versatilidade, adaptando conselhos ao gênero do cliente.'
       },
       {
         role: 'user',
@@ -224,7 +303,29 @@ Formato JSON igual ao anterior.`;
   const generateColorChallenge = async (template) => {
     const colors = ['Vermelho', 'Azul', 'Verde', 'Amarelo', 'Rosa', 'Roxo', 'Laranja'];
     
+    // Contexto do gênero
+    const genderContext = userProfile?.gender ? `
+PERFIL DO UTILIZADOR:
+- Gênero: ${userProfile.gender}
+
+STYLING DE CORES POR GÊNERO:
+${userProfile.gender === 'female' ? `
+- INCLUIR: Como usar cores femininely, coordination com maquilhagem
+- FOCAR: Feminine color combinations, jewelry coordination
+- STYLING: Techniques para enhanced femininity através das cores
+` : userProfile.gender === 'male' ? `
+- INCLUIR: Masculine color styling, professional appropriateness  
+- FOCAR: How colors work in masculine styling, business contexts
+- STYLING: Sophisticated masculine color combinations
+` : `
+- INCLUIR: Styling neutro de cores, versatilidade universal
+- FOCAR: Color combinations adequadas a qualquer expressão
+`}
+` : '';
+    
     const prompt = `Cria um desafio de cores de 7 dias. Cada dia foca numa cor dominante:
+
+${genderContext}
 
 CORES DOS DIAS:
 ${colors.slice(0, 7).map((color, index) => `Dia ${index + 1}: ${color}`).join('\n')}
@@ -232,14 +333,14 @@ ${colors.slice(0, 7).map((color, index) => `Dia ${index + 1}: ${color}`).join('\
 ARMÁRIO:
 ${wardrobe.map(item => `- ${item.name} (${item.category}, ${item.color})`).join('\n')}
 
-Para cada dia, cria outfit onde a cor designada seja dominante.
+Para cada dia, cria outfit onde a cor designada seja dominante, considerando o gênero.
 
 Formato JSON igual ao anterior.`;
 
     const response = await callOpenAI([
       {
         role: 'system',
-        content: 'És um especialista em teoria das cores e styling.'
+        content: 'És um especialista em teoria das cores e styling, adaptando conselhos ao gênero do cliente.'
       },
       {
         role: 'user',
@@ -255,23 +356,40 @@ Formato JSON igual ao anterior.`;
   };
 
   const generateGenericChallenge = async (template) => {
+    // Contexto do gênero
+    const genderContext = userProfile?.gender ? `
+PERFIL DO UTILIZADOR:
+- Gênero: ${userProfile.gender}
+
+PERSONALIZAÇÃO POR GÊNERO:
+${userProfile.gender === 'female' ? `
+- ADAPTAR: Challenges para styling feminino e ocasiões femininas
+- INCLUIR: Elementos femininos como accessories, makeup coordination
+` : userProfile.gender === 'male' ? `
+- ADAPTAR: Challenges para styling masculino e contextos masculinos
+- INCLUIR: Elementos masculinos como grooming, formal wear
+` : `
+- ADAPTAR: Challenges neutros e inclusivos
+- INCLUIR: Elementos versáteis para qualquer expressão
+`}
+` : '';
+
     // Generic challenge generator for other types
     const prompt = `Cria um desafio "${template.name}" com ${template.duration} tasks criativas.
 
-DESCRIÇÃO: ${template.description}
-TIPO: ${template.type}
+${genderContext}
 
 ARMÁRIO:
-${wardrobe.map(item => `- ${item.name} (${item.category}, ${item.color})`).join('\n')}
+${wardrobe.slice(0, 15).map(item => `- ${item.name} (${item.category}, ${item.color})`).join('\n')}
 
-Cria tasks específicas e motivadoras para este desafio.
+Cria tasks variadas e interessantes que desafiem a criatividade no styling, adaptadas ao gênero.
 
 Formato JSON igual ao anterior.`;
 
     const response = await callOpenAI([
       {
         role: 'system',
-        content: 'És um personal stylist que cria desafios de moda únicos.'
+        content: 'És um criador de desafios de moda inovadores, adaptando cada desafio ao gênero do cliente.'
       },
       {
         role: 'user',
@@ -287,51 +405,43 @@ Formato JSON igual ao anterior.`;
   };
 
   const completeTask = (challengeId, taskIndex) => {
-    const updatedActive = activeChallenges.map(challenge => {
+    const updatedChallenges = activeChallenges.map(challenge => {
       if (challenge.id === challengeId) {
-        const newCompletedTasks = [...challenge.completedTasks, taskIndex];
-        const newProgress = Math.floor((newCompletedTasks.length / challenge.totalTasks) * 100);
+        const updatedCompletedTasks = [...challenge.completedTasks, taskIndex];
+        const progress = Math.round((updatedCompletedTasks.length / challenge.totalTasks) * 100);
         
         return {
           ...challenge,
-          completedTasks: newCompletedTasks,
-          progress: newProgress
+          completedTasks: updatedCompletedTasks,
+          progress
         };
       }
       return challenge;
     });
 
+    setActiveChallenges(updatedChallenges);
+    
     // Check if challenge is completed
-    const completedChallenge = updatedActive.find(c => c.id === challengeId && c.progress === 100);
+    const completedChallenge = updatedChallenges.find(c => c.id === challengeId && c.progress === 100);
     if (completedChallenge) {
-      const newCompleted = [...completedChallenges, { ...completedChallenge, completedAt: new Date().toISOString() }];
-      const newActive = updatedActive.filter(c => c.id !== challengeId);
+      // Move to completed challenges
+      const newCompleted = [...completedChallenges, completedChallenge];
+      const newActive = updatedChallenges.filter(c => c.id !== challengeId);
+      
+      // Add XP
       const newXP = userXP + completedChallenge.xp;
       const newLevel = Math.floor(newXP / 1000) + 1;
       
+      setCompletedChallenges(newCompleted);
+      setActiveChallenges(newActive);
+      setUserXP(newXP);
+      setUserLevel(newLevel);
+      
       saveProgress(newActive, newCompleted, newLevel, newXP);
-      alert(`🎉 Desafio completado! +${completedChallenge.xp} XP`);
+      
+      alert(`🎉 Desafio "${completedChallenge.name}" completado! +${completedChallenge.xp} XP`);
     } else {
-      saveProgress(updatedActive, completedChallenges, userLevel, userXP);
-    }
-  };
-
-  const canStartChallenge = (template) => {
-    if (template.requirements.minPieces && wardrobe.length < template.requirements.minPieces) {
-      return false;
-    }
-    if (template.requirements.maxPieces && wardrobe.length > template.requirements.maxPieces) {
-      // This is actually allowed for minimal challenges
-    }
-    return true;
-  };
-
-  const getDifficultyColor = (difficulty) => {
-    switch (difficulty) {
-      case 'Fácil': return 'bg-green-100 text-green-800';
-      case 'Médio': return 'bg-yellow-100 text-yellow-800';
-      case 'Difícil': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      saveProgress(updatedChallenges, completedChallenges, userLevel, userXP);
     }
   };
 
@@ -342,26 +452,32 @@ Formato JSON igual ao anterior.`;
           <button onClick={() => navigateToScreen('home')} className="text-white">
             <ArrowLeft className="h-6 w-6" />
           </button>
-          <h1 className="text-2xl font-bold text-white ml-4">Desafios do Armário</h1>
+          <h1 className="text-2xl font-bold text-white ml-4">Desafios de Styling</h1>
         </div>
 
         {/* User Level & XP */}
         <div className="bg-white rounded-2xl p-4 shadow-xl mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <div className="flex items-center space-x-2">
-              <Trophy className="h-6 w-6 text-yellow-500" />
-              <span className="font-bold text-gray-800">Level {userLevel}</span>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-pink-500 rounded-full flex items-center justify-center">
+                <Trophy className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <h2 className="font-bold text-gray-800">Level {userLevel}</h2>
+                <p className="text-sm text-gray-600">{userXP} XP total</p>
+              </div>
             </div>
-            <span className="text-sm text-gray-600">{userXP} XP</span>
+            <div className="text-right">
+              <p className="text-sm text-gray-600">Próximo level:</p>
+              <p className="text-sm font-semibold">{1000 - (userXP % 1000)} XP</p>
+            </div>
           </div>
+          
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div 
-              className="bg-gradient-to-r from-yellow-500 to-orange-500 h-2 rounded-full"
+              className="bg-gradient-to-r from-red-500 to-pink-500 h-2 rounded-full"
               style={{ width: `${(userXP % 1000) / 10}%` }}
             />
-          </div>
-          <div className="text-xs text-gray-500 mt-1">
-            {1000 - (userXP % 1000)} XP para o próximo level
           </div>
         </div>
 
@@ -370,11 +486,13 @@ Formato JSON igual ao anterior.`;
           <div className="bg-white rounded-2xl p-4 shadow-xl mb-4">
             <h2 className="font-bold text-gray-800 mb-3">Desafios Ativos</h2>
             <div className="space-y-3">
-              {activeChallenges.map(challenge => (
+              {activeChallenges.map((challenge) => (
                 <div key={challenge.id} className="border rounded-lg p-3">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="font-semibold text-gray-800">{challenge.name}</h3>
-                    <span className="text-sm text-blue-600">{challenge.progress}%</span>
+                    <span className={`text-xs px-2 py-1 rounded ${getDifficultyColor(challenge.difficulty)}`}>
+                      {challenge.difficulty}
+                    </span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
                     <div 
@@ -438,12 +556,6 @@ Formato JSON igual ao anterior.`;
                       {isActive ? 'Ativo' : canStart ? 'Iniciar' : 'Bloqueado'}
                     </button>
                   </div>
-                  
-                  {!canStart && template.requirements.minPieces && (
-                    <div className="mt-2 text-xs text-red-600">
-                      Necessitas de pelo menos {template.requirements.minPieces} peças no armário
-                    </div>
-                  )}
                 </div>
               );
             })}
@@ -455,118 +567,117 @@ Formato JSON igual ao anterior.`;
           <div className="bg-white rounded-2xl p-4 shadow-xl">
             <h2 className="font-bold text-gray-800 mb-3">Desafios Completados</h2>
             <div className="space-y-2">
-              {completedChallenges.map(challenge => (
-                <div key={challenge.id} className="flex items-center justify-between p-2 bg-green-50 rounded">
-                  <div className="flex items-center space-x-2">
-                    <CheckCircle className="h-4 w-4 text-green-600" />
-                    <span className="text-sm font-medium">{challenge.name}</span>
+              {completedChallenges.map((challenge) => (
+                <div key={challenge.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <CheckCircle className="h-5 w-5 text-green-500" />
+                    <div>
+                      <h3 className="font-semibold text-gray-800">{challenge.name}</h3>
+                      <p className="text-sm text-gray-600">+{challenge.xp} XP ganhado</p>
+                    </div>
                   </div>
-                  <span className="text-xs text-green-600">+{challenge.xp} XP</span>
+                  <Trophy className="h-5 w-5 text-yellow-500" />
                 </div>
               ))}
             </div>
           </div>
         )}
-
-        {/* Challenge Detail Modal */}
-        {selectedChallenge && !showChallengeModal && (
-          <ChallengeDetailModal
-            challenge={selectedChallenge}
-            onClose={() => setSelectedChallenge(null)}
-            onCompleteTask={completeTask}
-            wardrobe={wardrobe}
-          />
-        )}
-
-        {/* Start Challenge Modal */}
-        {showChallengeModal && selectedChallenge && (
-          <StartChallengeModal
-            challenge={selectedChallenge}
-            onStart={() => startChallenge(selectedChallenge)}
-            onClose={() => {
-              setShowChallengeModal(false);
-              setSelectedChallenge(null);
-            }}
-            wardrobe={wardrobe}
-          />
-        )}
       </div>
+
+      {/* Challenge Detail Modal */}
+      {selectedChallenge && !showChallengeModal && (
+        <ChallengeDetailModal
+          challenge={selectedChallenge}
+          onClose={() => setSelectedChallenge(null)}
+          onCompleteTask={completeTask}
+        />
+      )}
+
+      {/* Start Challenge Modal */}
+      {showChallengeModal && selectedChallenge && (
+        <StartChallengeModal
+          challenge={selectedChallenge}
+          onStart={() => startChallenge(selectedChallenge)}
+          onClose={() => {
+            setShowChallengeModal(false);
+            setSelectedChallenge(null);
+          }}
+          wardrobe={wardrobe}
+        />
+      )}
     </div>
   );
 };
 
 // Challenge Detail Modal
-const ChallengeDetailModal = ({ challenge, onClose, onCompleteTask, wardrobe }) => {
+const ChallengeDetailModal = ({ challenge, onClose, onCompleteTask }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-6">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-bold text-gray-800">{challenge.name}</h3>
-          <button onClick={onClose} className="text-gray-500">✕</button>
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-96 overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold text-gray-800">{challenge.name}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            ✕
+          </button>
         </div>
 
         <div className="mb-4">
-          <div className="flex justify-between text-sm text-gray-600 mb-1">
-            <span>Progresso</span>
-            <span>{challenge.progress}%</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
             <div 
-              className="bg-blue-500 h-2 rounded-full"
+              className="bg-blue-500 h-3 rounded-full"
               style={{ width: `${challenge.progress}%` }}
             />
           </div>
+          <p className="text-sm text-gray-600 text-center">
+            {challenge.completedTasks.length}/{challenge.totalTasks} tasks completadas
+          </p>
         </div>
 
         <div className="space-y-3">
           {challenge.tasks?.map((task, index) => {
-            const isCompleted = challenge.completedTasks?.includes(index);
+            const isCompleted = challenge.completedTasks.includes(index);
             return (
-              <div key={index} className={`p-3 rounded-lg border ${
-                isCompleted ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
-              }`}>
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <h4 className="font-semibold text-gray-800">
-                      Dia {task.day}: {task.name}
-                    </h4>
-                    <p className="text-sm text-gray-600">{task.occasion}</p>
+              <div key={index} className={`border rounded-lg p-3 ${isCompleted ? 'bg-green-50 border-green-200' : ''}`}>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                      {isCompleted ? (
+                        <CheckCircle className="h-5 w-5 text-green-500" />
+                      ) : (
+                        <div className="w-5 h-5 border-2 border-gray-300 rounded-full" />
+                      )}
+                      <span className="font-semibold text-gray-800">Dia {task.day}</span>
+                    </div>
+                    
+                    <h4 className="font-medium text-gray-800 mb-1">{task.name}</h4>
+                    <p className="text-sm text-gray-600 mb-2">{task.occasion}</p>
+                    
+                    <div className="text-sm text-gray-600 mb-2">
+                      <strong>Peças:</strong> {task.pieces?.join(', ')}
+                    </div>
+                    
+                    {task.challenge && (
+                      <div className="text-sm text-blue-700 bg-blue-50 p-2 rounded">
+                        🎯 {task.challenge}
+                      </div>
+                    )}
+                    
+                    {task.tips && (
+                      <div className="text-xs text-blue-700 mt-1">
+                        💡 {task.tips}
+                      </div>
+                    )}
                   </div>
-                  {isCompleted ? (
-                    <CheckCircle className="h-5 w-5 text-green-600" />
-                  ) : (
+                  
+                  {!isCompleted && (
                     <button
                       onClick={() => onCompleteTask(challenge.id, index)}
-                      className="text-sm bg-blue-500 text-white px-2 py-1 rounded"
+                      className="ml-3 bg-blue-500 text-white px-3 py-1 rounded text-sm"
                     >
                       Completar
                     </button>
                   )}
                 </div>
-                
-                {task.pieces && (
-                  <div className="mb-2">
-                    <div className="flex flex-wrap gap-1">
-                      {task.pieces.map((piece, pieceIndex) => (
-                        <span key={pieceIndex} className="bg-gray-200 text-gray-700 text-xs px-2 py-1 rounded">
-                          {piece}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                
-                {task.challenge && (
-                  <div className="text-xs text-purple-700 bg-purple-100 p-2 rounded">
-                    🎯 {task.challenge}
-                  </div>
-                )}
-                
-                {task.tips && (
-                  <div className="text-xs text-blue-700 mt-1">
-                    💡 {task.tips}
-                  </div>
-                )}
               </div>
             );
           })}

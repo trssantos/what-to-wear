@@ -46,92 +46,117 @@ const QuickAnalysisScreen = ({ navigateToScreen }) => {
       alert('API key da OpenAI não configurada no sistema.');
       return;
     }
-
+  
     if (!capturedImage) {
       alert('Adiciona uma foto da peça primeiro.');
       return;
     }
-
+  
     setIsAnalyzing(true);
     
     try {
       const hasWardrobe = wardrobe.length > 0;
       const hasOutfits = outfits.length > 0;
       const hasProfile = userProfile?.colorSeason || userProfile?.bodyShape;
-
+  
+      // Contexto do gênero
+      const genderContext = userProfile?.gender ? `
+  PERFIL DO UTILIZADOR:
+  - Gênero: ${userProfile.gender}
+  
+  ANÁLISE ESPECÍFICA POR GÊNERO:
+  ${userProfile.gender === 'female' ? `
+  - FOCAR EM: Compatibilidade com styling feminino, acessórios femininos, versatilidade
+  - AVALIAR: Como a peça se adequa ao guarda-roupa feminino, potencial para layering
+  - SUGERIR: Combinações com joias, sapatos femininos, outras peças femininas
+  - CONSIDERAR: Ocasiões femininas (trabalho, casual, eventos), comfort e elegância
+  ` : userProfile.gender === 'male' ? `
+  - FOCAR EM: Compatibilidade com styling masculino, dress codes, versatilidade
+  - AVALIAR: Como a peça se adequa ao guarda-roupa masculino, formalidade
+  - SUGERIR: Combinações com acessórios masculinos (relógios, cintos), sapatos
+  - CONSIDERAR: Ocasiões masculinas (profissional, casual, formal), sophistication
+  ` : `
+  - FOCAR EM: Styling neutro e inclusivo, versatilidade universal
+  - AVALIAR: Adequação a diferentes expressões de gênero
+  - SUGERIR: Combinações versáteis e acessórios neutros
+  `}
+  ` : '';
+  
       const prompt = `Como especialista em análise de vestuário e fashion advisor, analisa APENAS a peça de roupa nesta imagem e fornece recomendações de compra.
-
-IMPORTANTE: Foca apenas na análise da ROUPA/PEÇA DE VESTUÁRIO na imagem, não em pessoas.
-DISCLAIMER: Esta é uma consultoria puramente estética de styling e teoria das cores, não uma análise médica ou física.
-
-CONTEXTO DO UTILIZADOR:
-${hasWardrobe ? `
-ARMÁRIO ATUAL (${wardrobe.length} peças):
-${wardrobe.map((item, index) => 
-  `${index + 1}. ${item.name} (${item.category}, ${item.color}${item.brand ? ', ' + item.brand : ''})`
-).join('\n')}` : 'ARMÁRIO: Ainda não tem peças catalogadas (primeiro armário!)'}
-
-${hasOutfits ? `
-OUTFITS CRIADOS (${outfits.length}):
-${outfits.map((outfit, index) => 
-  `${index + 1}. ${outfit.name} (${outfit.occasion || 'casual'})`
-).join('\n')}` : 'OUTFITS: Ainda não criou nenhum outfit'}
-
-${hasProfile ? `
-PERFIL PESSOAL:
-- Estação de cor: ${userProfile?.colorSeason || 'Não definido'}
-- Body shape: ${userProfile?.bodyShape || 'Não definido'}` : 'PERFIL: Ainda não fez análises pessoais'}
-
-RESPOSTA REQUERIDA EM JSON:
-{
-  "identificacao": {
-    "tipo": "string (ex: Moletom, Camisa, Calças)",
-    "cor": "string (cor principal)",
-    "material": "string (material aparente)",
-    "estilo": "string (casual, formal, desportivo)"
-  },
-  "score": {
-    "pontuacao": "number (1-10)",
-    "justificacao": "string (porquê este score)"
-  },
-  "compatibilidade": {
-    ${hasProfile && userProfile?.colorSeason ? `"estacaoCor": {
-      "nivel": "string (EXCELENTE, BOM, NEUTRO)",
-      "explicacao": "string"
-    },` : ''}
-    ${hasProfile && userProfile?.bodyShape ? `"bodyShape": {
-      "nivel": "string (FAVORÁVEL, ADEQUADO, NEUTRO)",
-      "explicacao": "string"
-    },` : ''}
-    "versatilidade": "string (análise geral)"
-  },
-  "combinaCom": [
-    ${hasWardrobe ? `{
-      "peca": "string (nome exato da peça do armário)",
-      "tipoLook": "string (que tipo de look criaria)"
-    }` : `{
-      "categoria": "string (tipo de peça necessária)",
-      "sugestao": "string (sugestão específica)"
-    }`}
-  ],
-  "versatilidade": {
-    "ocasioes": ["string", "string"],
-    "estilos": ["string", "string"],
-    "layering": "string"
-  },
-  "decisao": {
-    "recomendacao": "string (COMPRAR ou NÃO_COMPRAR)",
-    "razoes": ["string", "string", "string"]
-  },
-  "catalogacao": {
-    "categoria": "string",
-    "cor": "string", 
-    "tags": ["string", "string"]
+  
+  IMPORTANTE: Foca apenas na análise da ROUPA/PEÇA DE VESTUÁRIO na imagem, não em pessoas.
+  DISCLAIMER: Esta é uma consultoria puramente estética de styling e teoria das cores, não uma análise médica ou física.
+  
+  ${genderContext}
+  
+  CONTEXTO DO UTILIZADOR:
+  ${hasWardrobe ? `
+  ARMÁRIO ATUAL (${wardrobe.length} peças):
+  ${wardrobe.map((item, index) => 
+    `${index + 1}. ${item.name} (${item.category}, ${item.color}${item.brand ? ', ' + item.brand : ''})`
+  ).join('\n')}` : 'ARMÁRIO: Ainda não tem peças catalogadas (primeiro armário!)'}
+  
+  ${hasOutfits ? `
+  OUTFITS CRIADOS (${outfits.length}):
+  ${outfits.map((outfit, index) => 
+    `${index + 1}. ${outfit.name} (${outfit.occasion || 'casual'})`
+  ).join('\n')}` : 'OUTFITS: Ainda não criou nenhum outfit'}
+  
+  ${hasProfile ? `
+  PERFIL PESSOAL:
+  - Estação de cor: ${userProfile?.colorSeason || 'Não definido'}
+  - Body shape: ${userProfile?.bodyShape || 'Não definido'}` : 'PERFIL: Ainda não fez análises pessoais'}
+  
+  RESPOSTA REQUERIDA EM JSON:
+  {
+    "identificacao": {
+      "tipo": "string (ex: Moletom, Camisa, Calças)",
+      "cor": "string (cor principal)",
+      "material": "string (material aparente)",
+      "estilo": "string (casual, formal, desportivo)"
+    },
+    "score": {
+      "pontuacao": "number (1-10)",
+      "justificacao": "string (porquê este score considerando o gênero)"
+    },
+    "compatibilidade": {
+      ${hasProfile && userProfile?.colorSeason ? `"estacaoCor": {
+        "nivel": "string (EXCELENTE, BOM, NEUTRO)",
+        "explicacao": "string"
+      },` : ''}
+      ${hasProfile && userProfile?.bodyShape ? `"bodyShape": {
+        "nivel": "string (FAVORÁVEL, ADEQUADO, NEUTRO)",
+        "explicacao": "string"
+      },` : ''}
+      "versatilidade": "string (análise geral considerando o gênero)"
+    },
+    "combinaCom": [
+      ${hasWardrobe ? `{
+        "peca": "string (nome exato da peça do armário)",
+        "tipoLook": "string (que tipo de look criaria considerando o gênero)"
+      }` : `{
+        "categoria": "string (tipo de peça necessária para o gênero)",
+        "sugestao": "string (sugestão específica baseada no gênero)"
+      }`}
+    ],
+    "versatilidade": {
+      "ocasioes": ["string", "string"],
+      "estilos": ["string", "string"],
+      "layering": "string (considerando o gênero)"
+    },
+    "decisao": {
+      "recomendacao": "string (COMPRAR ou NÃO_COMPRAR)",
+      "razoes": ["string (razão 1 considerando gênero)", "string (razão 2)", "string (razão 3)"]
+    },
+    "catalogacao": {
+      "categoria": "string",
+      "cor": "string", 
+      "tags": ["string", "string"]
+    }
   }
-}
-
-IMPORTANTE: Responde APENAS com JSON válido. Só o objeto JSON puro.`;
-
+  
+  IMPORTANTE: Responde APENAS com JSON válido. Considera sempre o gênero do utilizador nas recomendações.`;
+  
       const messages = [
         {
           role: 'user',
@@ -149,50 +174,25 @@ IMPORTANTE: Responde APENAS com JSON válido. Só o objeto JSON puro.`;
           ]
         }
       ];
-
-      console.log('🔄 Iniciando análise rápida da peça...');
-      const analysis = await callOpenAI(messages, true);
+  
+      const response = await callOpenAI(messages, true);
       
-      // Tentar parsear como JSON
-      let parsedAnalysis;
       try {
-        // Limpar markdown e outros caracteres antes do JSON
-        let cleanedAnalysis = analysis.trim();
-        
-        // Remover ```json no início e ``` no fim
-        if (cleanedAnalysis.startsWith('```json')) {
-          cleanedAnalysis = cleanedAnalysis.replace(/^```json\s*/, '');
+        // Extract JSON from response
+        const jsonMatch = response.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          const result = JSON.parse(jsonMatch[0]);
+          setAnalysisResult(result);
+        } else {
+          throw new Error('Resposta não contém JSON válido');
         }
-        if (cleanedAnalysis.startsWith('```')) {
-          cleanedAnalysis = cleanedAnalysis.replace(/^```\s*/, '');
-        }
-        if (cleanedAnalysis.endsWith('```')) {
-          cleanedAnalysis = cleanedAnalysis.replace(/\s*```$/, '');
-        }
-        
-        // Remover qualquer texto antes do { ou depois do }
-        const jsonStart = cleanedAnalysis.indexOf('{');
-        const jsonEnd = cleanedAnalysis.lastIndexOf('}');
-        
-        if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-          cleanedAnalysis = cleanedAnalysis.substring(jsonStart, jsonEnd + 1);
-        }
-        
-        console.log('🧹 JSON limpo:', cleanedAnalysis.substring(0, 200) + '...');
-        
-        parsedAnalysis = JSON.parse(cleanedAnalysis);
-        console.log('✅ Resposta JSON parseada:', parsedAnalysis);
       } catch (parseError) {
-        console.warn('⚠️ Resposta não é JSON válido, usando como texto:', parseError);
-        console.log('📝 Resposta original:', analysis.substring(0, 300) + '...');
-        parsedAnalysis = { rawText: analysis };
+        console.error('Erro ao parsear JSON:', parseError);
+        throw new Error('Erro na análise da IA. Tenta novamente.');
       }
-      
-      setAnalysisResult(parsedAnalysis);
-      console.log('✅ Análise rápida concluída');
-      
+  
     } catch (error) {
-      console.error('❌ Erro na análise rápida:', error);
+      console.error('❌ Erro na Quick Analysis:', error);
       alert('Erro na análise: ' + error.message);
     }
     

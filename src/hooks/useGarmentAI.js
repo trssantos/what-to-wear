@@ -19,7 +19,33 @@ export const useGarmentAI = () => {
     setIsAnalyzing(true);
     
     try {
+// Contexto do gênero
+const genderContext = userProfile?.gender ? `
+PERFIL DO UTILIZADOR:
+- Gênero: ${userProfile.gender}
+
+ANÁLISE ESPECÍFICA POR GÊNERO:
+${userProfile.gender === 'female' ? `
+- FOCAR EM: Como a peça se adequa ao styling feminino
+- CONSIDERAR: Versatilidade para ocasiões, layering feminino
+- ACESSÓRIOS: Que joias, calçado femininos combinam
+- STYLING: Técnicas femininas de usar a peça, proporções femininas
+` : userProfile.gender === 'male' ? `
+- FOCAR EM: Como a peça se adequa ao styling masculino
+- CONSIDERAR: Adequação a dress codes masculinos, versatilidade
+- ACESSÓRIOS: Que relógios, cintos, calçado masculinos combinam
+- STYLING: Técnicas masculinas de usar a peça, fit requirements
+` : `
+- FOCAR EM: Versatilidade neutra da peça
+- CONSIDERAR: Adequação a diferentes expressões de gênero
+- STYLING: Técnicas versáteis de styling
+`}
+` : '';
+
+
       const prompt = `Como especialista em análise de vestuário e moda, analisa esta imagem de uma peça de roupa e gera uma descrição detalhada e metadata para catalogação digital.
+
+      ${genderContext}
 
 INFORMAÇÕES FORNECIDAS PELO UTILIZADOR:
 - Nome: ${itemInfo.name || 'Não especificado'}
@@ -117,11 +143,37 @@ FORMATO DE RESPOSTA: Texto corrido descritivo, sem listas ou bullets. Máximo 10
     setIsAnalyzing(true);
     
     try {
+
+      const genderContext = userProfile?.gender ? `
+PERFIL DO UTILIZADOR:
+- Gênero: ${userProfile.gender}
+
+ANÁLISE DE COMBINAÇÃO POR GÊNERO:
+${userProfile.gender === 'female' ? `
+- AVALIAR: Harmonia feminina, adequação a ocasiões femininas
+- SUGERIR: Acessórios femininos que complementem (joias, sapatos, carteiras)
+- STYLING: Dicas femininas de layering, proporções, styling tips
+- MELHORIAS: Como feminizar ou elegantizar mais a combinação
+` : userProfile.gender === 'male' ? `
+- AVALIAR: Adequação ao styling masculino, sophistication level
+- SUGERIR: Acessórios masculinos (relógios, cintos, sapatos adequados)
+- STYLING: Dicas masculinas de fit, grooming, professional presence
+- MELHORIAS: Como tornar mais sophisticated ou appropriate para contextos masculinos
+` : `
+- AVALIAR: Harmonia neutra e versatilidade
+- SUGERIR: Acessórios versáteis e styling neutro
+- STYLING: Dicas inclusivas adequadas a qualquer expressão
+`}
+` : '';
+      
+
       const itemDescriptions = selectedItems.map(item => 
         `${item.name} (${item.category}, ${item.color}${item.brand ? ', ' + item.brand : ''})`
       ).join(', ');
 
       const prompt = `Como especialista em styling e moda, analisa esta combinação de roupas e fornece feedback detalhado:
+
+      ${genderContext}
 
 PEÇAS SELECIONADAS: ${itemDescriptions}
 OCASIÃO: ${occasion || 'Não especificada'}
@@ -161,8 +213,35 @@ Sê específico e construtivo no feedback.`;
     setIsAnalyzing(true);
     
     try {
+
+      // Contexto do gênero
+    const genderContext = userProfile?.gender ? `
+    PERFIL DO UTILIZADOR:
+    - Gênero: ${userProfile.gender}
+    
+    RECOMENDAÇÃO DE COMPRA POR GÊNERO:
+    ${userProfile.gender === 'female' ? `
+    - CONSIDERAR: Se a peça se adequa ao guarda-roupa feminino existente
+    - AVALIAR: Versatilidade para ocasiões femininas, potential for femininity
+    - COMBINAR: Com que peças femininas do armário funcionaria melhor
+    - STYLING: Como estilizar femininely, que acessórios femininos adicionar
+    ` : userProfile.gender === 'male' ? `
+    - CONSIDERAR: Se a peça se adequa ao guarda-roupa masculino existente
+    - AVALIAR: Versatilidade para contextos masculinos, professional appropriateness
+    - COMBINAR: Com que peças masculinas do armário funcionaria melhor
+    - STYLING: Como estilizar masculinely, que acessórios masculinos adicionar
+    ` : `
+    - CONSIDERAR: Versatilidade neutra da peça
+    - AVALIAR: Adequação a diferentes expressões de gênero
+    - COMBINAR: Com peças neutras e versáteis do armário
+    `}
+    ` : '';
+
+    
       const prompt = `Como personal shopper expert e analista de moda, realiza uma análise COMPLETA desta peça de roupa considerando TODO o contexto do armário do utilizador.
 
+      ${genderContext}
+      
 ARMÁRIO ATUAL (${wardrobe.length} peças com descrições AI):
 ${wardrobe.map((item, index) => 
   `${index + 1}. ${item.name} (${item.category}, ${item.color}${item.brand ? ', ' + item.brand : ''})${item.aiMetadata ? ' - AI: ' + item.aiMetadata.substring(0, 100) + '...' : ''}`

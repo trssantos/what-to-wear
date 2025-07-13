@@ -79,8 +79,30 @@ const StyleChatScreen = ({ navigateToScreen }) => {
     setIsLoading(true);
 
     try {
+      const genderContext = userProfile?.gender ? `
+      PERFIL DO UTILIZADOR:
+      - Gênero: ${userProfile.gender}
+      
+      Tem em conta o gênero do utilizador em todas as respostas:
+      ${userProfile.gender === 'female' ? `
+      - Podes sugerir: Styling feminino, Dicas de maquilhagem que combinem, penteados para cabelo feminino, Acessórios femininos (brincos, colares, pulseiras, anéis, lenços)
+      - STYLING: Técnicas femininas de layering, proporções, color coordination
+      ` : userProfile.gender === 'male' ? `
+      - Podes sugerir: Styling masculino, sophistication, masculinidade, Acessórios masculinos (relógios, cintos, sapatos, carteiras)
+      - STYLING: Técnicas masculinas, fit requirements, professional presence
+      ` : `
+      - FOCAR EM: Styling neutro e inclusivo
+      - INCLUIR: Conselhos versáteis adequados a qualquer expressão de gênero
+      - SUGERIR: Acessórios neutros e opções inclusivas
+      - STYLING: Técnicas adaptáveis e versáteis
+      `}
+      ` : '';
+
+
       const systemContext = `És um consultor de moda expert e estilista pessoal. Analisas outfits, dás conselhos de estilo, respondes a perguntas sobre moda, cores, combinações, ocasiões, e ajudas com qualquer questão relacionada com estilo pessoal.
 
+
+${genderContext}      
 ${wardrobe.length > 0 ? `ARMÁRIO DO UTILIZADOR:
 ${wardrobe.map(item => `- ${item.name} (${item.category}, ${item.color}${item.brand ? ', ' + item.brand : ''}) - Tags: ${item.tags?.join(', ') || 'N/A'} - ${item.notes || 'Sem notas'}`).join('\n')}` : ''}
 

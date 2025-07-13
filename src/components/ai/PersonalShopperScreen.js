@@ -48,69 +48,97 @@ const PersonalShopperScreen = ({ navigateToScreen, openaiApiKey }) => {
     scrollToBottom();
   }, [messages]);
 
-  const sendMessage = async (messageText = inputText) => {
-    if (!messageText.trim()) return;
-
+  const sendMessage = async (messageText, messageImage = null) => {
+    if (!messageText.trim() && !messageImage) return;
+  
     const newMessage = {
       id: Date.now(),
       type: 'user',
       content: messageText,
+      image: messageImage,
       timestamp: new Date()
     };
-
+  
     setMessages(prev => [...prev, newMessage]);
-    setInputText('');
-    setIsLoading(true);
-
+    setIsTyping(true);
+  
     try {
-      const systemContext = `És uma personal shopper expert e consultora de moda com acesso a informações de várias lojas e marcas. Ajudas clientes a encontrar as peças perfeitas baseadas no seu estilo, orçamento, ocasião e necessidades específicas.
-
-INFORMAÇÕES DO CLIENTE:
-ARMÁRIO ATUAL (${wardrobe.length} peças):
-${wardrobe.map(item => `- ${item.name} (${item.category}, ${item.color}${item.brand ? ', ' + item.brand : ''}) - Tags: ${item.tags?.join(', ') || 'N/A'}`).join('\n')}
-
-PERFIL:
-${userProfile ? `
-- Estação de cor: ${userProfile.colorSeason || 'N/A'}
-- Body shape: ${userProfile.bodyShape || 'N/A'}
-- Última análise: ${userProfile.analyzedAt || 'N/A'}
-` : 'Perfil não disponível'}
-
-PREFERÊNCIAS ATUAIS:
-- Orçamento: ${budget.min && budget.max ? `€${budget.min}-${budget.max}` : 'Não definido'}
-- Ocasião: ${preferences.occasion || 'Não especificada'}
-- Estilo: ${preferences.style || 'Não especificado'}
-- Urgência: ${preferences.urgency || 'Não especificada'}
-- Lojas preferidas: ${preferences.stores.length ? preferences.stores.join(', ') : 'Nenhuma especificada'}
-
-INSTRUÇÕES:
-1. Sê conversacional, amigável e útil como uma personal shopper real
-2. Faz perguntas específicas para entender melhor as necessidades
-3. Sugere peças específicas com marcas, preços estimados e onde comprar
-4. Considera o armário existente para evitar duplicações
-5. Respeita o orçamento e body shape/estação de cor se disponível
-6. Oferece alternativas em diferentes faixas de preço
-7. Inclui links ou direções para lojas quando relevante
-8. Mantém o contexto da conversa anterior
-
-FORMATO DE RESPOSTA:
-- Responde naturalmente como uma conversa
-- Se sugerires peças específicas, inclui:
-  * Nome da peça
-  * Marca/loja
-  * Preço estimado
-  * Porque é adequada
-  * Como combinar
-- Oferece 2-3 opções sempre que possível
-- Pergunta follow-up quando necessário`;
-
+      // Contexto do gênero
+      const genderContext = userProfile?.gender ? `
+  PERFIL DO UTILIZADOR:
+  - Gênero: ${userProfile.gender}
+  
+  RECOMENDAÇÕES ESPECÍFICAS POR GÊNERO:
+  ${userProfile.gender === 'female' ? `
+  - PRIORIZAR: Roupas femininas, acessórios como brincos, colares, pulseiras, anéis
+  - INCLUIR: Produtos de maquilhagem, cuidados de cabelo femininos, sapatos femininos
+  - SUGERIR: Joias, carteiras femininas, lenços, vestidos, saias, tops femininos
+  - MARCAS: Focar em marcas com boas opções femininas
+  - STYLING: Dicas de como usar peças femininas, layering feminino
+  ` : userProfile.gender === 'male' ? `
+  - PRIORIZAR: Roupas masculinas, acessórios como relógios, cintos, sapatos formais
+  - INCLUIR: Produtos de grooming masculino, cuidados de cabelo masculinos
+  - SUGERIR: Relógios, cintos de couro, carteiras masculinas, camisas, calças, blazers
+  - MARCAS: Focar em marcas com boas opções masculinas
+  - STYLING: Dicas de styling masculino, dress codes profissionais
+  ` : `
+  - ADAPTAR: Recomendações neutras e inclusivas
+  - INCLUIR: Peças versáteis adequadas a qualquer expressão de gênero
+  - SUGERIR: Acessórios neutros e opções inclusivas
+  `}
+  ` : '';
+  
+      const systemContext = `És uma personal shopper expert e consultora de moda. Ajudas pessoas a encontrar as peças perfeitas considerando o seu estilo, orçamento e necessidades específicas baseadas no gênero.
+  
+  ${genderContext}
+  
+  INFORMAÇÕES DO CLIENTE:
+  ARMÁRIO ATUAL (${wardrobe.length} peças):
+  ${wardrobe.map(item => `- ${item.name} (${item.category}, ${item.color}${item.brand ? ', ' + item.brand : ''}) - Tags: ${item.tags?.join(', ') || 'N/A'}`).join('\n')}
+  
+  PERFIL:
+  ${userProfile ? `
+  - Estação de cor: ${userProfile.colorSeason || 'N/A'}
+  - Body shape: ${userProfile.bodyShape || 'N/A'}
+  - Última análise: ${userProfile.analyzedAt || 'N/A'}
+  ` : 'Perfil não disponível'}
+  
+  PREFERÊNCIAS ATUAIS:
+  - Orçamento: ${budget.min && budget.max ? `€${budget.min}-${budget.max}` : 'Não definido'}
+  - Ocasião: ${preferences.occasion || 'Não especificada'}
+  - Estilo: ${preferences.style || 'Não especificado'}
+  - Urgência: ${preferences.urgency || 'Não especificada'}
+  - Lojas preferidas: ${preferences.stores.length ? preferences.stores.join(', ') : 'Nenhuma especificada'}
+  
+  INSTRUÇÕES:
+  1. Sê conversacional, amigável e útil como uma personal shopper real
+  2. Faz perguntas específicas para entender melhor as necessidades
+  3. Sugere peças específicas com marcas, preços estimados e onde comprar considerando o gênero
+  4. Considera o armário existente para evitar duplicações
+  5. Respeita o orçamento e body shape/estação de cor se disponível
+  6. Oferece alternativas em diferentes faixas de preço
+  7. Inclui links ou direções para lojas quando relevante
+  8. Mantém o contexto da conversa anterior
+  9. IMPORTANTE: Adapta todas as sugestões ao gênero do cliente
+  
+  FORMATO DE RESPOSTA:
+  - Responde naturalmente como uma conversa
+  - Se sugerires peças específicas, inclui:
+    * Nome da peça
+    * Marca/loja
+    * Preço estimado
+    * Porque é adequada para o gênero
+    * Como combinar
+  - Oferece 2-3 opções sempre que possível
+  - Pergunta follow-up quando necessário`;
+  
       const conversationHistory = [
         {
           role: 'system',
           content: systemContext
         }
       ];
-
+  
       // Add recent messages for context
       const recentMessages = messages.slice(-6).concat(newMessage);
       recentMessages.forEach(msg => {
@@ -119,9 +147,9 @@ FORMATO DE RESPOSTA:
           content: msg.content
         });
       });
-
+  
       const response = await callOpenAI(conversationHistory);
-
+  
       // Check if response includes shopping recommendations
       const hasShoppingItems = response.includes('€') || response.includes('loja') || response.includes('marca');
       
@@ -132,27 +160,27 @@ FORMATO DE RESPOSTA:
         timestamp: new Date(),
         hasShoppingItems
       };
-
+  
       // Generate suggestions based on context
       const suggestions = await generateContextualSuggestions(messageText, response);
       if (suggestions.length > 0) {
         aiMessage.suggestions = suggestions;
       }
-
+  
       setMessages(prev => [...prev, aiMessage]);
-
+  
     } catch (error) {
       console.error('❌ Erro na mensagem do Personal Shopper:', error);
       const errorMessage = {
         id: Date.now() + 1,
         type: 'ai',
-        content: `Desculpa, tive um problema técnico. Podes reformular a tua pergunta?\n\nErro: ${error.message}`,
+        content: `Desculpa, tive um problema técnico. Podes tentar de novo?`,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
     }
-
-    setIsLoading(false);
+    
+    setIsTyping(false);
   };
 
   const generateContextualSuggestions = async (userMessage, aiResponse) => {

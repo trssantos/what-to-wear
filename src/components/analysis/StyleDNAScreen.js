@@ -26,82 +26,78 @@ const StyleDNAScreen = ({ navigateToScreen, openaiApiKey }) => {
   const generateStyleDNA = async () => {
     setIsGenerating(true);
     try {
+      // Contexto do gênero
+      const genderContext = userProfile?.gender ? `
+  PERFIL DO UTILIZADOR:
+  - Gênero: ${userProfile.gender}
+  
+  ANÁLISE ESPECÍFICA POR GÊNERO:
+  ${userProfile.gender === 'female' ? `
+  - CELEBRITY MATCHES: Focar em celebridades femininas com estilos similares
+  - STYLE TRAITS: Incluir características femininas como elegância, feminilidade, versatilidade
+  - ACESSÓRIOS: Considerar joias, maquilhagem, sapatos femininos na análise
+  - STYLE EVOLUTION: Tendências femininas e como adaptar o estilo
+  ` : userProfile.gender === 'male' ? `
+  - CELEBRITY MATCHES: Focar em celebridades masculinas com estilos similares  
+  - STYLE TRAITS: Incluir características masculinas como sophistication, masculinidade
+  - ACESSÓRIOS: Considerar relógios, cintos, sapatos masculinos na análise
+  - STYLE EVOLUTION: Tendências masculinas e grooming na evolução do estilo
+  ` : `
+  - CELEBRITY MATCHES: Incluir celebridades de diferentes expressões de gênero
+  - STYLE TRAITS: Características neutras e inclusivas
+  - ACESSÓRIOS: Considerar acessórios versáteis e neutros
+  `}
+  ` : '';
+  
       const prompt = `Como especialista em análise de estilo pessoal, cria um "Style DNA" único e viral para esta pessoa baseado no seu armário e outfits.
-
-ARMÁRIO (${wardrobe.length} peças):
-${wardrobe.map(item => `- ${item.name} (${item.category}, ${item.color}${item.brand ? ', ' + item.brand : ''}) - Tags: ${item.tags?.join(', ') || 'N/A'}`).join('\n')}
-
-OUTFITS CRIADOS (${outfits.length}):
-${outfits.map(outfit => `- ${outfit.name} (${outfit.occasion || 'casual'})`).join('\n')}
-
-PERFIL EXISTENTE:
-- Estação de cor: ${userProfile?.colorSeason || 'N/A'}
-- Body shape: ${userProfile?.bodyShape || 'N/A'}
-
-Cria um Style DNA completo e partilhável com:
-
-1. **DNA IDENTIFIER**: Código único tipo "STYLE-DNA-XXXX"
-2. **STYLE ARCHETYPE**: Nome criativo do estilo (ex: "Minimalist Powerhouse", "Boho Maximalist")
-3. **DNA HELIXES**: 6 características principais que definem o estilo
-4. **STYLE PERCENTAGE**: Breakdown por categorias (ex: 40% Classic, 30% Trendy, 20% Boho, 10% Edgy)
-5. **COLOR SIGNATURE**: 5 cores dominantes extraídas do armário
-6. **CELEBRITY MATCHES**: Top 3 celebridades com estilo similar (com % compatibilidade)
-7. **STYLE TRAITS**: 8 características únicas do estilo pessoal
-8. **FASHION FUTURE**: Previsão de evolução do estilo
-9. **STYLE MOTTO**: Frase que define a abordagem à moda
-10. **SHAREABLE STATS**: Dados interessantes para partilhar
-
-Formato JSON:
-{
-  "dnaId": "STYLE-DNA-XXXX",
-  "archetype": "nome criativo",
-  "description": "descrição do estilo",
-  "helixes": ["helix1", "helix2", "helix3", "helix4", "helix5", "helix6"],
-  "styleBreakdown": {
-    "Classic": 40,
-    "Trendy": 30,
-    "Boho": 20,
-    "Edgy": 10
-  },
-  "colorSignature": ["#HEX1", "#HEX2", "#HEX3", "#HEX4", "#HEX5"],
-  "celebrityMatches": [
-    {"name": "Celebrity", "compatibility": 87, "reason": "motivo"},
-    {"name": "Celebrity2", "compatibility": 82, "reason": "motivo"}
-  ],
-  "styleTraits": ["trait1", "trait2", "trait3", "trait4", "trait5", "trait6", "trait7", "trait8"],
-  "fashionFuture": "previsão de evolução",
-  "styleMotto": "frase inspiradora",
-  "shareableStats": {
-    "favoriteCategory": "categoria dominante",
-    "colorDiversity": "score de diversidade",
-    "styleVersatility": "score de versatilidade",
-    "trendiness": "score de modernidade",
-    "uniqueness": "score de originalidade"
-  }
-}`;
-
+  
+  ${genderContext}
+  
+  ARMÁRIO (${wardrobe.length} peças):
+  ${wardrobe.map(item => `- ${item.name} (${item.category}, ${item.color}${item.brand ? ', ' + item.brand : ''}) - Tags: ${item.tags?.join(', ') || 'N/A'}`).join('\n')}
+  
+  OUTFITS CRIADOS (${outfits.length}):
+  ${outfits.map(outfit => `- ${outfit.name} (${outfit.occasion || 'casual'})`).join('\n')}
+  
+  PERFIL EXISTENTE:
+  - Estação de cor: ${userProfile?.colorSeason || 'N/A'}
+  - Body shape: ${userProfile?.bodyShape || 'N/A'}
+  
+  Cria um Style DNA completo e partilhável com:
+  
+  1. **DNA IDENTIFIER**: Código único tipo "STYLE-DNA-XXXX"
+  2. **STYLE ARCHETYPE**: Nome criativo do estilo considerando o gênero (ex: "Minimalist Powerhouse", "Boho Maximalist")
+  3. **DNA HELIXES**: 6 características principais que definem o estilo baseadas no gênero
+  4. **STYLE PERCENTAGE**: Breakdown por categorias (ex: 40% Classic, 30% Trendy, 20% Boho, 10% Edgy)
+  5. **COLOR SIGNATURE**: 5 cores dominantes extraídas do armário
+  6. **CELEBRITY MATCHES**: Top 3 celebridades do mesmo gênero com estilo similar (com % compatibilidade)
+  7. **STYLE TRAITS**: 8 características únicas do estilo pessoal adaptadas ao gênero
+  8. **FASHION FUTURE**: Previsão de evolução do estilo considerando tendências do gênero
+  9. **STYLE MOTTO**: Frase que define a abordagem à moda
+  10. **SIGNATURE ACCESSORIES**: Acessórios essenciais baseados no gênero
+  11. **STYLE POWER SCORE**: Score de 1-100 da força do estilo pessoal
+  12. **WARDROBE EFFICIENCY**: Análise da eficiência atual do armário
+  
+  FORMATO: Texto viral e partilhável, como se fosse um perfil de rede social. Usa emojis e linguagem cativante.
+  Foca na personalidade única de cada gênero e como o estilo reflete isso.
+  
+  Faz isto parecer um resultado de teste de personalidade super cool que a pessoa vai querer partilhar!`;
+  
       const response = await callOpenAI([
         {
           role: 'system',
-          content: 'És um especialista em análise de estilo pessoal e criação de conteúdo viral de moda. Crias Style DNA únicos e partilháveis.'
+          content: 'És um especialista em análise de estilo e criação de conteúdo viral. Crias perfis de estilo únicos e partilháveis que capturam a essência da personalidade de moda de cada pessoa, adaptados ao seu gênero.'
         },
         {
           role: 'user',
           content: prompt
         }
       ]);
-
-      // Parse JSON response
-      const jsonMatch = response.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const dnaData = JSON.parse(jsonMatch[0]);
-        setStyleDNA(dnaData);
-      } else {
-        throw new Error('Resposta inválida da IA');
-      }
-
+  
+      setStyleDNA(response);
     } catch (error) {
-      alert('Erro na geração do Style DNA: ' + error.message);
+      console.error('Error generating Style DNA:', error);
+      alert('Erro ao gerar Style DNA. Tenta novamente.');
     }
     setIsGenerating(false);
   };
