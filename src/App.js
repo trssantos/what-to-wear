@@ -1,4 +1,4 @@
-// src/App.js - Versão corrigida
+// src/App.js - Versão com OutfitAnalysisScreen
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
@@ -24,6 +24,8 @@ import BodyShapeAnalysisScreen from './components/analysis/BodyShapeAnalysisScre
 import StyleDNAScreen from './components/analysis/StyleDNAScreen';
 import StyleTwinFinderScreen from './components/ai/StyleTwinFinderScreen';
 import PersonalStylistScreen from './components/ai/PersonalStylistScreen';
+import QuickAnalysisScreen from './components/analysis/QuickAnalysisScreen';
+import OutfitAnalysisScreen from './components/analysis/OutfitAnalysisScreen'; // ✨ NOVO
 
 // Import additional screens
 import VirtualFittingScreen from './components/fitting/VirtualFittingScreen';
@@ -34,8 +36,6 @@ import SmartShoppingScreen from './components/shopping/SmartShoppingScreen';
 // Import new onboarding screens
 import OnboardingWizard from './components/onboarding/OnboardingWizard';
 import ProfileSettingsScreen from './components/profile/ProfileSettingsScreen';
-
-import QuickAnalysisScreen from './components/analysis/QuickAnalysisScreen';
 
 // Import contexts
 import { AppProvider, useAppContext } from './contexts/AppContext';
@@ -176,8 +176,10 @@ const AppContent = () => {
         return <StyleChatScreen {...commonProps} />;
       case 'recommendations':
         return <RecommendationsScreen {...commonProps} />;
-        case 'quick-analysis': 
+      case 'quick-analysis': 
         return <QuickAnalysisScreen {...commonProps} />;
+      case 'outfit-analysis': // ✨ NOVO
+        return <OutfitAnalysisScreen {...commonProps} />;
       
       // Analysis Features
       case 'color-analysis':

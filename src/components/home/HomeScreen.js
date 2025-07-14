@@ -1,4 +1,4 @@
-// src/components/home/HomeScreen.js - Versão refatorada
+// src/components/home/HomeScreen.js - Versão reorganizada
 import React, { useState, useEffect } from 'react';
 import { 
   User, Settings, LogOut, Shirt, Sparkles, Camera, 
@@ -11,19 +11,17 @@ import { useAppContext } from '../../contexts/AppContext';
 import { useAuth } from '../../hooks/useAuth';
 import { auth } from '../../firebase';
 import { OPENAI_API_KEY } from '../../utils/constants';
-import BottomNavigation from '../shared/BottomNavigation'; // ✨ NOVO
+import BottomNavigation from '../shared/BottomNavigation';
 
 const HomeScreen = ({ navigateToScreen, setShowApiSetup, screenData }) => {
   const { wardrobe, outfits, userProfile } = useAppContext();
   const { signOut } = useAuth();
   const [user, setUser] = useState(null);
   
-  // ✨ NOVO: Suportar activeTab vindo de screenData (quando navega de outros ecrãs)
   const [activeTab, setActiveTab] = useState(screenData?.activeTab || 'quick');
   const [searchTerm, setSearchTerm] = useState('');
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
-  // Get current user from Firebase auth
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       setUser(user);
@@ -31,14 +29,12 @@ const HomeScreen = ({ navigateToScreen, setShowApiSetup, screenData }) => {
     return () => unsubscribe();
   }, []);
 
-  // ✨ NOVO: Atualizar activeTab se vier de screenData
   useEffect(() => {
     if (screenData?.activeTab) {
       setActiveTab(screenData.activeTab);
     }
   }, [screenData]);
 
-  // Get user's preferred name
   const getUserName = () => {
     if (userProfile?.name) {
       return userProfile.name;
@@ -49,19 +45,13 @@ const HomeScreen = ({ navigateToScreen, setShowApiSetup, screenData }) => {
     return 'Utilizador';
   };
 
+  // ✨ REORGANIZADO: Nova tab dedicada aos Outfits
   const featureCategories = {
     'quick': {
       name: 'Acesso Rápido',
       icon: <Zap className="h-5 w-5" />,
       color: 'from-purple-500 to-pink-500',
       features: [
-        {
-          icon: <Sparkles className="h-6 w-6" />,
-          title: "Recomendação Inteligente",
-          subtitle: "IA que entende qualquer situação",
-          screen: "outfit-quiz",
-          gradient: "from-blue-500 to-cyan-500"
-        },
         {
           icon: <Camera className="h-6 w-6" />,
           title: "Adicionar Peça",
@@ -70,64 +60,57 @@ const HomeScreen = ({ navigateToScreen, setShowApiSetup, screenData }) => {
           gradient: "from-green-500 to-emerald-500"
         },
         {
-          icon: <Package className="h-6 w-6" />,
-          title: "Criar Outfit",
-          subtitle: "Combina peças rapidamente",
-          screen: "create-outfit",
-          gradient: "from-orange-500 to-red-500"
-        },
-        {
           icon: <Target className="h-6 w-6" />,
           title: "Análise Rápida",
           subtitle: "Vale a pena comprar esta peça?",
           screen: "quick-analysis",
-          gradient: "from-purple-500 to-indigo-500"
+          gradient: "from-pink-500 to-purple-500"
+        },
+        {
+          icon: <MessageCircle className="h-6 w-6" />,
+          title: "Consultor de Estilo",
+          subtitle: "Chat direto com stylist IA",
+          screen: "style-chat",
+          gradient: "from-teal-500 to-cyan-500"
+        },
+        {
+          icon: <Sparkles className="h-6 w-6" />,
+          title: "Recomendação de Look",
+          subtitle: "IA sugere outfit para qualquer ocasião",
+          screen: "outfit-quiz",
+          gradient: "from-blue-500 to-cyan-500"
         }
       ]
     },
     'wardrobe': {
       name: 'Armário',
       icon: <Shirt className="h-5 w-5" />,
-      color: 'from-orange-500 to-red-500',
+      color: 'from-blue-500 to-indigo-500',
       features: [
         {
           icon: <Shirt className="h-6 w-6" />,
           title: "Meu Armário",
-          subtitle: "Explora e organiza as tuas peças",
+          subtitle: "Gerir todas as tuas peças",
           screen: "wardrobe",
-          gradient: "from-orange-500 to-red-500"
-        },
-        {
-          icon: <Plus className="h-6 w-6" />,
-          title: "Adicionar Peça",
-          subtitle: "Fotografa e cataloga nova peça",
-          screen: "add-item",
-          gradient: "from-green-500 to-emerald-500"
-        },
-        {
-          icon: <Search className="h-6 w-6" />,
-          title: "Pesquisa Inteligente",
-          subtitle: "Encontra peças por cor, estilo ou ocasião",
-          screen: "wardrobe-search",
           gradient: "from-blue-500 to-indigo-500"
         },
         {
-          icon: <Sparkles className="h-6 w-6" />,
-          title: "Análise do Armário",
-          subtitle: "Estatísticas e insights sobre as tuas peças",
-          screen: "wardrobe-analytics",
-          gradient: "from-purple-500 to-pink-500"
+          icon: <Camera className="h-6 w-6" />,
+          title: "Adicionar Nova Peça",
+          subtitle: "Fotografa e cataloga",
+          screen: "add-item",
+          gradient: "from-green-500 to-emerald-500"
         }
       ]
     },
     'analysis': {
-      name: 'Análise',
+      name: 'Análise Pessoal',
       icon: <Dna className="h-5 w-5" />,
-      color: 'from-indigo-500 to-purple-500',
+      color: 'from-pink-500 to-rose-500',
       features: [
         {
           icon: <Palette className="h-6 w-6" />,
-          title: "Análise de Cores",
+          title: "Análise de Cor",
           subtitle: "Descobre a tua estação de cor ideal",
           screen: "color-analysis",
           gradient: "from-pink-500 to-rose-500"
@@ -156,10 +139,17 @@ const HomeScreen = ({ navigateToScreen, setShowApiSetup, screenData }) => {
       ]
     },
     'ai': {
-      name: 'IA & Styling',
+      name: 'Assistentes IA',
       icon: <Bot className="h-5 w-5" />,
       color: 'from-green-500 to-teal-500',
       features: [
+        {
+          icon: <MessageCircle className="h-6 w-6" />,
+          title: "Consultor de Estilo IA",
+          subtitle: "Chat conversacional sobre moda",
+          screen: "style-chat",
+          gradient: "from-teal-500 to-cyan-500"
+        },
         {
           icon: <Bot className="h-6 w-6" />,
           title: "Personal Stylist IA",
@@ -180,19 +170,13 @@ const HomeScreen = ({ navigateToScreen, setShowApiSetup, screenData }) => {
           subtitle: "Assistente de compras inteligente",
           screen: "personal-shopper",
           gradient: "from-blue-500 to-teal-500"
-        },
-        {
-          icon: <Eye className="h-6 w-6" />,
-          title: "Análise de Look",
-          subtitle: "IA analisa qualquer roupa ou outfit",
-          screen: "quick-analysis",
-          gradient: "from-orange-500 to-pink-500"
         }
+        // ❌ REMOVIDO: "Análise de Look" (redundante com Análise Rápida)
       ]
     },
-    'planning': {
-      name: 'Planeamento',
-      icon: <Calendar className="h-5 w-5" />,
+    'outfits': {
+      name: 'Outfits & Looks',
+      icon: <Package className="h-5 w-5" />,
       color: 'from-orange-500 to-red-500',
       features: [
         {
@@ -203,25 +187,18 @@ const HomeScreen = ({ navigateToScreen, setShowApiSetup, screenData }) => {
           gradient: "from-violet-500 to-purple-500"
         },
         {
-          icon: <Calendar className="h-6 w-6" />,
-          title: "Calendário de Looks",
-          subtitle: "Planeia outfits com antecedência",
-          screen: "outfit-calendar",
-          gradient: "from-blue-500 to-indigo-500"
+          icon: <Plus className="h-6 w-6" />,
+          title: "Criar Novo Outfit",
+          subtitle: "Combina peças para novos looks",
+          screen: "create-outfit",
+          gradient: "from-orange-500 to-red-500"
         },
         {
-          icon: <Briefcase className="h-6 w-6" />,
-          title: "Outfits Profissionais",
-          subtitle: "Looks para trabalho e reuniões",
-          screen: "business-outfits",
-          gradient: "from-gray-500 to-blue-500"
-        },
-        {
-          icon: <PartyPopper className="h-6 w-6" />,
-          title: "Eventos Especiais",
-          subtitle: "Preparação para ocasiões importantes",
-          screen: "special-events",
-          gradient: "from-pink-500 to-purple-500"
+          icon: <Star className="h-6 w-6" />,
+          title: "Análise de Outfit",
+          subtitle: "Score e feedback completo do teu look",
+          screen: "outfit-analysis",
+          gradient: "from-emerald-500 to-teal-500"
         }
       ]
     },
@@ -236,20 +213,6 @@ const HomeScreen = ({ navigateToScreen, setShowApiSetup, screenData }) => {
           subtitle: "O que comprar baseado no armário",
           screen: "smart-shopping",
           gradient: "from-green-500 to-emerald-500"
-        },
-        {
-          icon: <Store className="h-6 w-6" />,
-          title: "Wishlist & Favoritos",
-          subtitle: "Guarda peças que queres comprar",
-          screen: "wishlist",
-          gradient: "from-purple-500 to-pink-500"
-        },
-        {
-          icon: <TrendingUp className="h-6 w-6" />,
-          title: "Trends & Novidades",
-          subtitle: "Últimas tendências da moda",
-          screen: "fashion-trends",
-          gradient: "from-orange-500 to-red-500"
         }
       ]
     }
@@ -268,99 +231,99 @@ const HomeScreen = ({ navigateToScreen, setShowApiSetup, screenData }) => {
   const filteredFeatures = searchTerm 
     ? getAllFeatures().filter(feature => 
         feature.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        feature.subtitle.toLowerCase().includes(searchTerm.toLowerCase())
+        feature.subtitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        feature.category.toLowerCase().includes(searchTerm.toLowerCase())
       )
     : featureCategories[activeTab]?.features || [];
 
-  const handleProfileMenuClick = (e) => {
-    e.stopPropagation();
-    setShowProfileMenu(!showProfileMenu);
-  };
-
-  const handleMenuOptionClick = (action, e) => {
-    e.stopPropagation();
-    console.log(`Menu option clicked: ${action}`);
-    setShowProfileMenu(false);
-    
-    switch (action) {
-      case 'profile-settings':
-        navigateToScreen('profile-settings');
-        break;
-      case 'ai-settings':
-        if (setShowApiSetup) setShowApiSetup(true);
-        break;
-      case 'logout':
-        signOut();
-        break;
-      default:
-        console.log('Unknown action:', action);
-    }
-  };
-
-  // Close menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = () => {
-      if (showProfileMenu) {
-        setShowProfileMenu(false);
-      }
-    };
-
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, [showProfileMenu]);
+  const FeatureCard = ({ icon, title, subtitle, onClick, gradient, showCategory, category }) => (
+    <div 
+      onClick={onClick}
+      className={`bg-gradient-to-r ${gradient} p-4 rounded-xl shadow-sm cursor-pointer active:opacity-80 transition-opacity`}
+      style={{ 
+        WebkitTapHighlightColor: 'transparent',
+        touchAction: 'manipulation'
+      }}
+    >
+      <div className="flex items-center space-x-3">
+        <div className="text-white flex-shrink-0">
+          {icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-white font-semibold text-base leading-tight">
+            {title}
+          </h3>
+          <p className="text-white/90 text-sm leading-tight mt-1">
+            {subtitle}
+          </p>
+          {showCategory && category && (
+            <p className="text-white/70 text-xs mt-1">
+              {category}
+            </p>
+          )}
+        </div>
+        <ChevronRight className="h-4 w-4 text-white/60 flex-shrink-0" />
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 pb-20">
-      {/* Fixed Header */}
-      <div className="sticky top-0 z-10 bg-white/10 backdrop-blur-lg border-b border-white/20">
-        <div className="max-w-md mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center">
-                <User className="h-4 w-4 text-purple-500" />
-              </div>
-              <div>
-                <h2 className="text-white font-semibold text-sm">
-                  Olá, {getUserName()}!
-                </h2>
-                <p className="text-white/80 text-xs">
-                  {OPENAI_API_KEY ? 'IA ativada' : 'Configure a IA'}
-                </p>
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-purple-500 to-pink-500 pb-20">
+      {/* Header */}
+      <div className="p-6 pb-0">
+        <div className="max-w-md mx-auto">
+          <div className="flex justify-between items-center pt-8 mb-6">
+            <div>
+              <h1 className="text-3xl font-bold text-white">
+                Olá, {getUserName()}! 👋
+              </h1>
+              <p className="text-white/80 mt-1">O que vamos criar hoje?</p>
             </div>
-            
             <div className="relative">
               <button
-                onClick={handleProfileMenuClick}
-                className="p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="bg-white/20 backdrop-blur-sm p-2 rounded-full text-white"
               >
-                <Settings className="h-4 w-4 text-white" />
+                <User className="h-6 w-6" />
               </button>
               
               {showProfileMenu && (
-                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
-                  <button
-                    onClick={(e) => handleMenuOptionClick('profile-settings', e)}
-                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                  >
-                    <User className="h-4 w-4 mr-2" />
-                    Perfil & Configurações
-                  </button>
-                  <button
-                    onClick={(e) => handleMenuOptionClick('ai-settings', e)}
-                    className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
-                  >
-                    <Bot className="h-4 w-4 mr-2" />
-                    Configurar IA
-                  </button>
-                  <hr className="my-1" />
-                  <button
-                    onClick={(e) => handleMenuOptionClick('logout', e)}
-                    className="flex items-center px-4 py-2 text-sm text-red-700 hover:bg-red-50 w-full text-left"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Terminar Sessão
-                  </button>
+                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl z-50">
+                  <div className="p-2">
+                    <button
+                      onClick={() => {
+                        navigateToScreen('profile-settings');
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50"
+                    >
+                      <Settings className="h-4 w-4 text-gray-600" />
+                      <span className="text-gray-800">Definições</span>
+                    </button>
+                    {!OPENAI_API_KEY && (
+                      <button
+                        onClick={() => {
+                          setShowApiSetup(true);
+                          setShowProfileMenu(false);
+                        }}
+                        className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50"
+                      >
+                        <Bot className="h-4 w-4 text-orange-600" />
+                        <span className="text-orange-800">Configurar IA</span>
+                      </button>
+                    )}
+                    <div className="border-t my-2"></div>
+                    <button
+                      onClick={() => {
+                        signOut();
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 text-red-600"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      <span>Sair</span>
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -369,35 +332,37 @@ const HomeScreen = ({ navigateToScreen, setShowApiSetup, screenData }) => {
       </div>
 
       {/* Search Bar */}
-      <div className="max-w-md mx-auto px-4 py-4">
+      <div className="max-w-md mx-auto px-4 mb-6">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/60" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-white/60" />
           <input
             type="text"
+            placeholder="Pesquisar funcionalidades..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Procurar funcionalidades..."
-            className="w-full pl-10 pr-4 py-3 rounded-xl bg-white/20 backdrop-blur-sm border-0 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/30"
+            className="w-full bg-white/20 backdrop-blur-sm text-white placeholder-white/60 pl-10 pr-4 py-3 rounded-xl border border-white/20 focus:border-white/40 focus:outline-none"
           />
         </div>
       </div>
 
-      {/* Tab Content */}
-      <div className="max-w-md mx-auto px-4">
-        <div className="space-y-3 mb-6">
+      {/* Features Grid */}
+      <div className="flex-1 p-6 pt-0">
+        <div className="max-w-md mx-auto">
           {filteredFeatures.length > 0 ? (
-            filteredFeatures.map((feature, index) => (
-              <FeatureCard
-                key={index}
-                icon={feature.icon}
-                title={feature.title}
-                subtitle={feature.subtitle}
-                onClick={() => navigateToScreen(feature.screen)}
-                gradient={feature.gradient}
-                showCategory={!!searchTerm}
-                category={feature.category}
-              />
-            ))
+            <div className="space-y-3">
+              {filteredFeatures.map((feature, index) => (
+                <FeatureCard
+                  key={index}
+                  icon={feature.icon}
+                  title={feature.title}
+                  subtitle={feature.subtitle}
+                  onClick={() => navigateToScreen(feature.screen)}
+                  gradient={feature.gradient}
+                  showCategory={!!searchTerm}
+                  category={feature.category}
+                />
+              ))}
+            </div>
           ) : (
             <div className="text-center py-12">
               <Search className="h-12 w-12 text-white/50 mx-auto mb-4" />
@@ -438,7 +403,7 @@ const HomeScreen = ({ navigateToScreen, setShowApiSetup, screenData }) => {
         </div>
       </div>
 
-      {/* ✨ NOVO: Usar componente BottomNavigation reutilizável */}
+      {/* Bottom Navigation */}
       <BottomNavigation 
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -447,37 +412,5 @@ const HomeScreen = ({ navigateToScreen, setShowApiSetup, screenData }) => {
     </div>
   );
 };
-
-// Mobile-optimized Feature Card
-const FeatureCard = ({ icon, title, subtitle, onClick, gradient, showCategory, category }) => (
-  <div 
-    onClick={onClick}
-    className={`bg-gradient-to-r ${gradient} p-4 rounded-xl shadow-sm cursor-pointer active:opacity-80 transition-opacity`}
-    style={{ 
-      WebkitTapHighlightColor: 'transparent',
-      touchAction: 'manipulation'
-    }}
-  >
-    <div className="flex items-center space-x-3">
-      <div className="text-white flex-shrink-0">
-        {icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <h3 className="text-white font-semibold text-base leading-tight">
-          {title}
-        </h3>
-        <p className="text-white/90 text-sm leading-tight mt-1">
-          {subtitle}
-        </p>
-        {showCategory && category && (
-          <p className="text-white/70 text-xs mt-1">
-            {category}
-          </p>
-        )}
-      </div>
-      <ChevronRight className="h-4 w-4 text-white/60 flex-shrink-0" />
-    </div>
-  </div>
-);
 
 export default HomeScreen;

@@ -1,5 +1,6 @@
+// src/components/shared/BottomNavigation.js - Versão atualizada
 import React from 'react';
-import { Zap, Shirt, Dna, Bot, Calendar, ShoppingBag } from 'lucide-react';
+import { Zap, Shirt, Dna, Bot, ShoppingBag, Package } from 'lucide-react';
 
 const BottomNavigation = ({ 
   activeTab, 
@@ -9,17 +10,16 @@ const BottomNavigation = ({
   className = "" 
 }) => {
   
-  // ✅ EXATAS mesmas categorias do HomeScreen original
   const bottomNavItems = [
     { id: 'quick', icon: Zap, label: 'Rápido' },
     { id: 'wardrobe', icon: Shirt, label: 'Armário' },
     { id: 'analysis', icon: Dna, label: 'Análise' },
     { id: 'ai', icon: Bot, label: 'IA' },
-    { id: 'planning', icon: Calendar, label: 'Planos' },
+    { id: 'outfits', icon: Package, label: 'Outfits' },
     { id: 'shopping', icon: ShoppingBag, label: 'Shopping' }
   ];
 
-  // ✅ Mapeamento de ecrãs para categorias (para ecrãs que não são o home)
+  // ✅ Mapeamento atualizado com nova organização
   const getActiveTabFromScreen = (screen) => {
     const screenMappings = {
       // Home sempre mostra o activeTab atual
@@ -37,34 +37,30 @@ const BottomNavigation = ({
       'style-twin-finder': 'analysis',
       
       // AI category
+      'style-chat': 'ai',
       'personal-stylist': 'ai',
-      'quick-analysis': 'ai',
+      'quick-analysis': 'quick', // ✨ MOVIDO: Análise rápida agora está em quick access
       'recommendations': 'ai',
       'personal-shopper': 'ai',
       
-      // Planning category
-      'outfits': 'planning',
-      'create-outfit': 'planning',
-      'outfit-detail': 'planning',
-      'outfit-calendar': 'planning',
-      'event-planner': 'planning',
-      'business-outfits': 'planning',
-      'special-events': 'planning',
+      // Outfits category
+      'outfits': 'outfits',
+      'create-outfit': 'outfits',
+      'outfit-detail': 'outfits',
+      'outfit-analysis': 'outfits', // ✨ NOVA FUNCIONALIDADE
+      
+      // Quick access category 
+      'outfit-quiz': 'quick', // ✨ MOVIDO: outfit-quiz agora está em quick access
       
       // Shopping category
       'smart-shopping': 'shopping',
-      'wishlist': 'shopping',
-      'fashion-trends': 'shopping',
-      
-      // Quick access category
-      'outfit-quiz': 'quick'
     };
     
     return screenMappings[screen] || 'quick';
   };
 
-  // ✅ Determinar qual tab está ativo
-  const currentActiveTab = currentScreen ? getActiveTabFromScreen(currentScreen) : activeTab;
+  const currentActiveTab = currentScreen ? 
+    getActiveTabFromScreen(currentScreen) : activeTab;
 
   // ✅ Handle click - funciona para ambos os casos (home e outros ecrãs)
   const handleNavClick = (item) => {
@@ -77,8 +73,8 @@ const BottomNavigation = ({
         'quick': 'home', // Vai para home na tab quick
         'wardrobe': 'wardrobe',
         'analysis': 'color-analysis', // Primeira feature da categoria
-        'ai': 'personal-stylist',
-        'planning': 'outfits',
+        'ai': 'style-chat', // StyleChatScreen como primeira opção IA
+        'outfits': 'outfits', // ✨ NOVA TAB: vai para lista de outfits
         'shopping': 'smart-shopping'
       };
       
