@@ -1,128 +1,156 @@
+// src/components/outfits/OutfitVisual.js - ATUALIZAÇÃO PARA USAR ACESSÓRIOS SEPARADOS
+
 import React from 'react';
-import { Shirt, Package, Star } from 'lucide-react';
+import { Shirt, Star } from 'lucide-react';
 import { useAppContext } from '../../contexts/AppContext';
 
-const OutfitVisual = ({ outfit, size = 'large' }) => {
-  const { getItemById } = useAppContext();
+const OutfitVisual = ({ outfit, isSmall = true }) => {
+  const { 
+    getItemById, 
+    getAccessoryById // ✨ NOVO: função para obter acessórios
+  } = useAppContext();
 
-  // Se tem foto do outfit completo, mostrar essa
-  if (outfit.outfitImageUrl) {
-    const containerHeight = size === 'small' ? 'h-32' : 'h-64';
+  if (!outfit || !outfit.pieces) {
     return (
-      <div className={`relative ${containerHeight} bg-gradient-to-b from-blue-50 to-gray-100 rounded-lg overflow-hidden border-2 border-gray-200`}>
-        <img 
-          src={outfit.outfitImageUrl} 
-          alt="Outfit completo" 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
-          Foto Real
-        </div>
+      <div className={`${isSmall ? 'h-32' : 'h-48'} bg-gray-100 rounded-xl flex items-center justify-center`}>
+        <Shirt className={`${isSmall ? 'h-8 w-8' : 'h-12 w-12'} text-gray-300`} />
       </div>
     );
   }
 
-  // Caso contrário, mostrar o preview gerado das peças
-  const getTopItem = () => {
-    if (!outfit.pieces?.top) return null;
-    return getItemById(outfit.pieces.top);
-  };
-
-  const getBottomItem = () => {
-    if (!outfit.pieces?.bottom) return null;
-    return getItemById(outfit.pieces.bottom);
-  };
-
-  const getShoesItem = () => {
-    if (!outfit.pieces?.shoes) return null;
-    return getItemById(outfit.pieces.shoes);
-  };
-
+  // Obter peças do armário
+  const topItem = outfit.pieces.top ? getItemById(outfit.pieces.top) : null;
+  const bottomItem = outfit.pieces.bottom ? getItemById(outfit.pieces.bottom) : null;
+  const shoesItem = outfit.pieces.shoes ? getItemById(outfit.pieces.shoes) : null;
+  
+  // ✨ NOVO: Obter acessórios da coleção separada
   const getAccessoryItems = () => {
-    if (!outfit.pieces?.accessories || outfit.pieces.accessories.length === 0) return [];
-    return outfit.pieces.accessories.map(id => getItemById(id)).filter(Boolean);
+    if (!outfit.pieces.accessories || !Array.isArray(outfit.pieces.accessories)) {
+      return [];
+    }
+    return outfit.pieces.accessories
+      .map(accessoryId => getAccessoryById(accessoryId))
+      .filter(Boolean); // Remove nulls/undefined
   };
 
-  const isSmall = size === 'small';
-  const containerHeight = isSmall ? 'h-32' : 'h-64';
-  const itemHeight = isSmall ? 'h-8' : 'h-16';
-  const accessorySize = isSmall ? 'h-6 w-6' : 'h-12 w-12';
+  const accessoryItems = getAccessoryItems();
+
+  const gridSize = isSmall ? 'h-32' : 'h-48';
+  const itemSize = isSmall ? 'h-10 w-10' : 'h-16 w-16';
+  const accessorySize = isSmall ? 'h-6 w-6' : 'h-8 w-8';
 
   return (
-    <div className={`relative ${containerHeight} bg-gradient-to-b from-blue-50 to-gray-100 rounded-lg overflow-hidden border-2 border-gray-200`}>
-      {/* Top piece (shirt, jacket, etc.) */}
-      <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-3/4">
-        {getTopItem() ? (
-          <div className={`${itemHeight} bg-white rounded-lg shadow-sm border overflow-hidden`}>
-            {getTopItem().imageUrl ? (
-              <img 
-                src={getTopItem().imageUrl} 
-                alt={getTopItem().name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-blue-200 flex items-center justify-center">
-                <Shirt className={`${isSmall ? 'h-4 w-4' : 'h-8 w-8'} text-blue-600`} />
+    <div className={`relative ${gridSize} bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl overflow-hidden border border-gray-200`}>
+      {/* Layout em Grid 2x2 para as peças principais */}
+      <div className="grid grid-cols-2 grid-rows-2 h-full gap-1 p-2">
+        
+        {/* Top - Canto superior esquerdo */}
+        <div className="flex items-center justify-center">
+          {topItem ? (
+            <div className={`${itemSize} bg-white rounded-lg shadow-sm border overflow-hidden`}>
+              {topItem.imageUrl ? (
+                <img 
+                  src={topItem.imageUrl} 
+                  alt={topItem.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-orange-200 flex items-center justify-center">
+                  <Shirt className={`${isSmall ? 'h-4 w-4' : 'h-6 w-6'} text-orange-600`} />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className={`${itemSize} bg-white/50 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center`}>
+              <span className={`${isSmall ? 'text-xs' : 'text-sm'} text-gray-400`}>Top</span>
+            </div>
+          )}
+        </div>
+
+        {/* Acessórios - Canto superior direito */}
+        <div className="flex items-center justify-center">
+          {accessoryItems.length > 0 ? (
+            <div className="relative">
+              {/* Mostrar primeiro acessório */}
+              <div className={`${itemSize} bg-white rounded-lg shadow-sm border overflow-hidden`}>
+                {accessoryItems[0].imageUrl ? (
+                  <img 
+                    src={accessoryItems[0].imageUrl} 
+                    alt={accessoryItems[0].name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full bg-emerald-200 flex items-center justify-center">
+                    <Star className={`${isSmall ? 'h-4 w-4' : 'h-6 w-6'} text-emerald-600`} />
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        ) : (
-          <div className={`${itemHeight} border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center`}>
-            <span className={`text-gray-400 ${isSmall ? 'text-xs' : 'text-sm'}`}>Top</span>
-          </div>
-        )}
+              
+              {/* Indicador de mais acessórios */}
+              {accessoryItems.length > 1 && (
+                <div className={`absolute -bottom-1 -right-1 ${isSmall ? 'w-4 h-4 text-xs' : 'w-6 h-6 text-sm'} bg-emerald-500 text-white rounded-full flex items-center justify-center font-bold`}>
+                  +{accessoryItems.length - 1}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className={`${itemSize} bg-white/50 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center`}>
+              <span className={`${isSmall ? 'text-xs' : 'text-sm'} text-gray-400`}>Acessórios</span>
+            </div>
+          )}
+        </div>
+
+        {/* Bottom - Canto inferior esquerdo */}
+        <div className="flex items-center justify-center">
+          {bottomItem ? (
+            <div className={`${itemSize} bg-white rounded-lg shadow-sm border overflow-hidden`}>
+              {bottomItem.imageUrl ? (
+                <img 
+                  src={bottomItem.imageUrl} 
+                  alt={bottomItem.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-violet-200 flex items-center justify-center">
+                  <Shirt className={`${isSmall ? 'h-4 w-4' : 'h-6 w-6'} text-violet-600`} />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className={`${itemSize} bg-white/50 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center`}>
+              <span className={`${isSmall ? 'text-xs' : 'text-sm'} text-gray-400`}>Bottom</span>
+            </div>
+          )}
+        </div>
+
+        {/* Shoes - Canto inferior direito */}
+        <div className="flex items-center justify-center">
+          {shoesItem ? (
+            <div className={`${itemSize} bg-white rounded-lg shadow-sm border overflow-hidden`}>
+              {shoesItem.imageUrl ? (
+                <img 
+                  src={shoesItem.imageUrl} 
+                  alt={shoesItem.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                  <Shirt className={`${isSmall ? 'h-4 w-4' : 'h-6 w-6'} text-gray-600`} />
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className={`${itemSize} bg-white/50 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center`}>
+              <span className={`${isSmall ? 'text-xs' : 'text-sm'} text-gray-400`}>Shoes</span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Bottom piece (pants, skirt, etc.) */}
-      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-2/3">
-        {getBottomItem() ? (
-          <div className={`${itemHeight} bg-white rounded-lg shadow-sm border overflow-hidden`}>
-            {getBottomItem().imageUrl ? (
-              <img 
-                src={getBottomItem().imageUrl} 
-                alt={getBottomItem().name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-green-200 flex items-center justify-center">
-                <Package className={`${isSmall ? 'h-4 w-4' : 'h-8 w-8'} text-green-600`} />
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className={`${itemHeight} border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center`}>
-            <span className={`text-gray-400 ${isSmall ? 'text-xs' : 'text-sm'}`}>Bottom</span>
-          </div>
-        )}
-      </div>
-
-      {/* Shoes */}
-      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-1/2">
-        {getShoesItem() ? (
-          <div className={`${itemHeight} bg-white rounded-lg shadow-sm border overflow-hidden`}>
-            {getShoesItem().imageUrl ? (
-              <img 
-                src={getShoesItem().imageUrl} 
-                alt={getShoesItem().name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full bg-yellow-200 flex items-center justify-center">
-                <Package className={`${isSmall ? 'h-4 w-4' : 'h-8 w-8'} text-yellow-600`} />
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className={`${itemHeight} border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center`}>
-            <span className={`text-gray-400 ${isSmall ? 'text-xs' : 'text-sm'}`}>Shoes</span>
-          </div>
-        )}
-      </div>
-
-      {/* Accessories */}
-      {getAccessoryItems().length > 0 && (
+      {/* Lista de Acessórios no lado direito (se não for small) */}
+      {!isSmall && accessoryItems.length > 1 && (
         <div className="absolute top-2 right-2 space-y-1">
-          {getAccessoryItems().slice(0, 3).map((accessory, index) => (
+          {accessoryItems.slice(1, 4).map((accessory, index) => (
             <div key={index} className={`${accessorySize} bg-white rounded-full shadow-sm border overflow-hidden`}>
               {accessory.imageUrl ? (
                 <img 
@@ -131,23 +159,29 @@ const OutfitVisual = ({ outfit, size = 'large' }) => {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full bg-purple-200 flex items-center justify-center">
-                  <Star className={`${isSmall ? 'h-2 w-2' : 'h-4 w-4'} text-purple-600`} />
+                <div className="w-full h-full bg-emerald-200 flex items-center justify-center">
+                  <Star className="h-3 w-3 text-emerald-600" />
                 </div>
               )}
             </div>
           ))}
-          {getAccessoryItems().length > 3 && (
-            <div className={`${accessorySize} bg-gray-200 rounded-full flex items-center justify-center`}>
-              <span className="text-xs text-gray-600">+{getAccessoryItems().length - 3}</span>
+          
+          {accessoryItems.length > 4 && (
+            <div className={`${accessorySize} bg-emerald-500 text-white rounded-full flex items-center justify-center text-xs font-bold`}>
+              +{accessoryItems.length - 4}
             </div>
           )}
         </div>
       )}
       
       {/* Indicador de preview gerado */}
-      <div className="absolute bottom-2 right-2 bg-black/50 text-white px-2 py-1 rounded text-xs">
+      <div className="absolute bottom-1 left-1 bg-black/50 text-white px-2 py-0.5 rounded text-xs">
         Preview
+      </div>
+
+      {/* ✨ NOVO: Indicador de número total de peças */}
+      <div className="absolute bottom-1 right-1 bg-violet-500 text-white px-2 py-0.5 rounded text-xs font-medium">
+        {[topItem, bottomItem, shoesItem].filter(Boolean).length + accessoryItems.length} peças
       </div>
     </div>
   );

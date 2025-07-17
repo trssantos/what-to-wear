@@ -1,55 +1,229 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, Camera, Upload, Send, X } from 'lucide-react';
+// src/components/ai/StyleChatScreen.js - VERSÃO COMPLETA COM ACESSÓRIOS
+
+import React, { useState, useRef, useEffect } from 'react';
+import { ArrowLeft, Send, Sparkles, User, Bot, Shirt, Watch, Palette, Plus, Target, X, ZoomIn, Eye } from 'lucide-react';
 import { useAppContext } from '../../contexts/AppContext';
 import { useOpenAI } from '../../hooks/useOpenAI';
 import { OPENAI_API_KEY } from '../../utils/constants';
-import CameraCapture from '../shared/CameraCapture';
+import BottomNavigation from '../shared/BottomNavigation';
 
 const StyleChatScreen = ({ navigateToScreen }) => {
-  const { wardrobe, userProfile } = useAppContext();
+  const { 
+    wardrobe, 
+    accessories, 
+    outfits, 
+    userProfile,
+    wardrobeAnalytics,
+    accessoriesAnalytics 
+  } = useAppContext();
+  
   const { callOpenAI } = useOpenAI();
   
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      type: 'ai',
-      content: 'Olá! Sou o teu consultor de estilo pessoal. Podes enviar-me fotos dos teus outfits para análise ou fazer qualquer pergunta sobre moda e estilo. Como posso ajudar?',
-      timestamp: new Date()
-    }
-  ]);
-  
-  const [inputText, setInputText] = useState('');
+  const [messages, setMessages] = useState([]);
+  const [currentMessage, setCurrentMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedImage, setSelectedImage] = useState(null);
-  const [showCamera, setShowCamera] = useState(false);
   const [showImageModal, setShowImageModal] = useState(false);
   const [modalImage, setModalImage] = useState(null);
   
-  const fileInputRef = useRef(null);
   const messagesEndRef = useRef(null);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  const inputRef = useRef(null);
 
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setSelectedImage(e.target.result);
-      };
-      reader.readAsDataURL(file);
+  useEffect(() => {
+    // Mensagem de boas-vindas personalizada
+    const welcomeMessage = {
+      id: Date.now(),
+      text: getWelcomeMessage(),
+      isUser: false,
+      timestamp: new Date(),
+      isWelcome: true
+    };
+    setMessages([welcomeMessage]);
+  }, []);
+
+  const getWelcomeMessage = () => {
+    const totalClothing = wardrobeAnalytics?.totalItems || 0;
+    const totalAccessories = accessoriesAnalytics?.totalItems || 0;
+    const totalOutfits = outfits?.length || 0;
+    const userName = userProfile?.name?.split(' ')[0] || '';
+
+    if (totalClothing === 0 && totalAccessories === 0) {
+      return `Olá${userName ? `, ${userName}` : ''}! 👋 Sou o teu consultor de moda pessoal. Ainda não tens peças no teu armário digital, mas posso ajudar-te a planear um guarda-roupa incrível! Que tipo de estilo gostas?`;
     }
+
+    return `Olá${userName ? `, ${userName}` : ''}! ✨ Sou o teu consultor de moda pessoal. Vejo que tens ${totalClothing} peças de roupa, ${totalAccessories} acessórios e ${totalOutfits} outfits criados. Como posso ajudar-te hoje com o teu estilo?`;
   };
 
-  const handleCameraCapture = (photoDataUrl) => {
-    setSelectedImage(photoDataUrl);
-    setShowCamera(false);
+  // Estatísticas da coleção
+  const getCollectionStats = () => {
+    const totalClothing = wardrobe.length;
+    const totalAccessories = accessories.length;
+    const totalOutfits = outfits.length;
+    const aiAnalyzedClothing = wardrobeAnalytics?.aiAnalyzedItems || 0;
+    const aiAnalyzedAccessories = accessoriesAnalytics?.aiAnalyzedItems || 0;
+
+    return {
+      totalItems: totalClothing + totalAccessories,
+      totalClothing,
+      totalAccessories,
+      totalOutfits,
+      aiAnalyzedTotal: aiAnalyzedClothing + aiAnalyzedAccessories,
+      hasItems: totalClothing > 0 || totalAccessories > 0
+    };
+  };
+
+  // Sistema de prompts atualizado
+  const getSystemPrompt = () => {
+    const stats = getCollectionStats();
+    
+    const genderContext = userProfile?.gender ? `
+PERFIL DO UTILIZADOR:
+- Gênero: ${userProfile.gender}
+- Estilo preferido: ${userProfile.stylePreference || 'Não especificado'}
+${userProfile.bodyShape ? `- Tipo de corpo: ${userProfile.bodyShape}` : ''}
+${userProfile.colorSeason ? `- Estação de cor: ${userProfile.colorSeason}` : ''}
+` : '';
+
+    return `És um consultor de moda e estilo pessoal especializado. Tens acesso ao armário digital completo do utilizador.
+
+${genderContext}
+
+COLEÇÃO ATUAL:
+- ${stats.totalClothing} peças de roupa
+- ${stats.totalAccessories} acessórios
+- ${stats.totalOutfits} outfits criados
+- ${stats.aiAnalyzedTotal} itens analisados por AI
+
+INSTRUÇÕES:
+1. **PERSONALIZAÇÃO**: Adapta todos os conselhos ao gênero e preferências do utilizador
+2. **ARMÁRIO REAL**: Refere-te às peças específicas que o utilizador tem
+3. **ACESSÓRIOS**: Inclui sempre sugestões de acessórios nas recomendações de styling
+4. **INTEGRAÇÃO**: Sugere como combinar roupas e acessórios para looks completos
+5. **PRÁTICO**: Dá conselhos específicos e implementáveis
+6. **OCASIÕES**: Considera diferentes ocasiões e contextos
+7. **TENDÊNCIAS**: Incorpora tendências atuais quando relevante
+
+CONTEXTO ESPECIAL:
+${stats.totalAccessories === 0 ? '- O utilizador ainda não tem acessórios catalogados. Sugere categorias essenciais para começar.' : ''}
+${stats.totalClothing === 0 ? '- O utilizador ainda não tem roupas catalogadas. Foca em peças essenciais para construir um guarda-roupa base.' : ''}
+
+Responde sempre de forma amigável, entusiástica e profissional. Se não tiveres informação suficiente, pergunta detalhes específicos.`;
+  };
+
+  // Sugestões rápidas atualizadas
+  const quickSuggestions = [
+    {
+      title: "Outfit do Dia",
+      prompt: `Com base no meu armário atual (${getCollectionStats().totalClothing} roupas + ${getCollectionStats().totalAccessories} acessórios), sugere um outfit completo para hoje. Inclui peças principais e acessórios que complementem o look.`,
+      icon: "🌟"
+    },
+    {
+      title: "Combinações com Acessórios",
+      prompt: "Como posso usar os meus acessórios para transformar looks básicos em algo mais interessante? Dá exemplos específicos com as peças que tenho.",
+      icon: "⌚"
+    },
+    {
+      title: "Análise do Armário",
+      prompt: `Analisa a minha coleção completa (${getCollectionStats().totalClothing} roupas + ${getCollectionStats().totalAccessories} acessórios) e identifica lacunas. O que devo comprar a seguir?`,
+      icon: "📊"
+    },
+    {
+      title: "Styling para Ocasião",
+      prompt: "Preciso de ajuda para criar um look para uma ocasião específica. Podes sugerir combinações usando o que já tenho?",
+      icon: "🎯"
+    },
+    {
+      title: "Organização por Cores",
+      prompt: "Como posso organizar melhor as cores no meu armário? Quais combinações funcionam melhor com os acessórios que tenho?",
+      icon: "🎨"
+    },
+    {
+      title: "Essenciais em Falta",
+      prompt: "Quais são os acessórios essenciais que me faltam para completar o meu guarda-roupa? Considera o meu estilo e as roupas que já tenho.",
+      icon: "📝"
+    }
+  ];
+
+  const sendMessage = async (message, isUser = true) => {
+    if (!message.trim() || isLoading) return;
+
+    const newMessage = {
+      id: Date.now(),
+      text: message,
+      isUser,
+      timestamp: new Date()
+    };
+
+    setMessages(prev => [...prev, newMessage]);
+    
+    if (isUser) {
+      setCurrentMessage('');
+      setIsLoading(true);
+
+      try {
+        // Contexto expandido incluindo acessórios
+        const wardrobeContext = wardrobe.length > 0 ? `
+ARMÁRIO ATUAL (${wardrobe.length} peças):
+${wardrobe.slice(0, 10).map(item => `- ${item.name} (${item.category}, ${item.color})`).join('\n')}
+${wardrobe.length > 10 ? `... e mais ${wardrobe.length - 10} peças` : ''}
+` : '';
+
+        const accessoriesContext = accessories.length > 0 ? `
+ACESSÓRIOS ATUAIS (${accessories.length} itens):
+${accessories.slice(0, 10).map(item => `- ${item.name} (${item.category}, ${item.color})`).join('\n')}
+${accessories.length > 10 ? `... e mais ${accessories.length - 10} acessórios` : ''}
+` : '';
+
+        const outfitsContext = outfits.length > 0 ? `
+OUTFITS CRIADOS (${outfits.length}):
+${outfits.slice(0, 5).map(outfit => `- ${outfit.name} (${outfit.occasion || 'casual'})`).join('\n')}
+` : '';
+
+        const fullContext = `${getSystemPrompt()}
+
+${wardrobeContext}
+${accessoriesContext}
+${outfitsContext}
+
+PERGUNTA DO UTILIZADOR: ${message}`;
+
+        const response = await callOpenAI([
+          {
+            role: 'system',
+            content: fullContext
+          },
+          {
+            role: 'user', 
+            content: message
+          }
+        ]);
+
+        const aiMessage = {
+          id: Date.now() + 1,
+          text: response,
+          isUser: false,
+          timestamp: new Date()
+        };
+
+        setMessages(prev => [...prev, aiMessage]);
+
+      } catch (error) {
+        console.error('Erro ao enviar mensagem:', error);
+        const errorMessage = {
+          id: Date.now() + 1,
+          text: 'Desculpa, ocorreu um erro ao processar a tua mensagem. Tenta novamente.',
+          isUser: false,
+          timestamp: new Date(),
+          isError: true
+        };
+        setMessages(prev => [...prev, errorMessage]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
   };
 
   const handleImageClick = (imageUrl) => {
@@ -57,225 +231,150 @@ const StyleChatScreen = ({ navigateToScreen }) => {
     setShowImageModal(true);
   };
 
-  const sendMessage = async () => {
-    if (!inputText.trim() && !selectedImage) return;
-
-    const newMessage = {
-      id: Date.now(),
-      type: 'user',
-      content: inputText,
-      image: selectedImage,
-      timestamp: new Date()
-    };
-
-    setMessages(prev => [...prev, newMessage]);
+  // Resumo da coleção
+  const CollectionOverview = () => {
+    const stats = getCollectionStats();
     
-    // Limpar imediatamente após enviar
-    const messageText = inputText;
-    const messageImage = selectedImage;
-    setInputText('');
-    setSelectedImage(null);
-    
-    setIsLoading(true);
-
-    try {
-      const genderContext = userProfile?.gender ? `
-      PERFIL DO UTILIZADOR:
-      - Gênero: ${userProfile.gender}
-      
-      Tem em conta o gênero do utilizador em todas as respostas:
-      ${userProfile.gender === 'female' ? `
-      - Podes sugerir: Styling feminino, Dicas de maquilhagem que combinem, penteados para cabelo feminino, Acessórios femininos (brincos, colares, pulseiras, anéis, lenços)
-      - STYLING: Técnicas femininas de layering, proporções, color coordination
-      ` : userProfile.gender === 'male' ? `
-      - Podes sugerir: Styling masculino, sophistication, masculinidade, Acessórios masculinos (relógios, cintos, sapatos, carteiras)
-      - STYLING: Técnicas masculinas, fit requirements, professional presence
-      ` : `
-      - FOCAR EM: Styling neutro e inclusivo
-      - INCLUIR: Conselhos versáteis adequados a qualquer expressão de gênero
-      - SUGERIR: Acessórios neutros e opções inclusivas
-      - STYLING: Técnicas adaptáveis e versáteis
-      `}
-      ` : '';
-
-
-      const systemContext = `És um consultor de moda expert e estilista pessoal. Analisas outfits, dás conselhos de estilo, respondes a perguntas sobre moda, cores, combinações, ocasiões, e ajudas com qualquer questão relacionada com estilo pessoal.
-
-
-${genderContext}      
-${wardrobe.length > 0 ? `ARMÁRIO DO UTILIZADOR:
-${wardrobe.map(item => `- ${item.name} (${item.category}, ${item.color}${item.brand ? ', ' + item.brand : ''}) - Tags: ${item.tags?.join(', ') || 'N/A'} - ${item.notes || 'Sem notas'}`).join('\n')}` : ''}
-
-INSTRUÇÕES IMPORTANTES:
-- Mantém sempre o contexto da conversa anterior
-- Se uma imagem foi enviada anteriormente, lembra-te dela para responder a perguntas subsequentes
-- Responde especificamente à pergunta feita, não repitas análises já feitas
-- Sê conversacional e referencia mensagens anteriores quando relevante
-- Se perguntarem sobre cores, combinações ou alternativas, foca apenas nisso`;
-
-      // Coletar últimas mensagens para contexto (incluindo a nova)
-      const allMessages = [...messages, newMessage];
-      const recentMessages = allMessages.slice(-10);
-      
-      const conversationHistory = [];
-      
-      // Adicionar contexto do sistema
-      conversationHistory.push({
-        role: 'system',
-        content: systemContext
-      });
-
-      // Processar mensagens mantendo contexto
-      for (let i = 0; i < recentMessages.length; i++) {
-        const msg = recentMessages[i];
+    return (
+      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl p-4 mb-6">
+        <h3 className="font-semibold text-gray-800 mb-3 flex items-center">
+          <span className="mr-2">📊</span>
+          Resumo da Coleção
+        </h3>
         
-        if (msg.type === 'user') {
-          if (msg.image) {
-            conversationHistory.push({
-              role: 'user',
-              content: [
-                {
-                  type: 'text',
-                  text: msg.content || 'Analisa esta imagem'
-                },
-                {
-                  type: 'image_url',
-                  image_url: {
-                    url: msg.image
-                  }
-                }
-              ]
-            });
-          } else {
-            let textContent = msg.content;
-            
-            // Se não for a primeira mensagem e não tem imagem, adicionar contexto
-            if (i > 0 && !msg.image) {
-              const previousImageMessage = recentMessages.slice(0, i).reverse().find(m => m.image);
-              if (previousImageMessage) {
-                textContent = `Continuando sobre o outfit que mostrei anteriormente: ${textContent}`;
-              }
-            }
-            
-            conversationHistory.push({
-              role: 'user',
-              content: textContent
-            });
-          }
-        } else if (msg.type === 'ai') {
-          conversationHistory.push({
-            role: 'assistant',
-            content: msg.content
-          });
-        }
-      }
-
-      // Determinar se há imagens na conversa
-      const hasImagesInConversation = conversationHistory.some(msg => 
-        Array.isArray(msg.content) && msg.content.some(c => c.type === 'image_url')
-      );
-
-      // Chamar OpenAI API
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: hasImagesInConversation ? 'gpt-4o' : 'gpt-4o-mini',
-          messages: conversationHistory,
-          max_tokens: 1000,
-          temperature: 0.7
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`API Error ${response.status}: ${errorData.error?.message || 'Erro desconhecido'}`);
-      }
-
-      const data = await response.json();
-      const responseContent = data.choices[0].message.content;
-
-      const aiMessage = {
-        id: Date.now() + 1,
-        type: 'ai',
-        content: responseContent,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, aiMessage]);
-
-    } catch (error) {
-      console.error('❌ Erro na mensagem do Style Chat:', error);
-      const errorMessage = {
-        id: Date.now() + 1,
-        type: 'ai',
-        content: `Erro: ${error.message}\n\nSugestões:\n• Verifica se a tua API key é válida\n• Confirma se tens acesso aos modelos GPT-4o\n• Tenta novamente em alguns segundos`,
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    }
-
-    setIsLoading(false);
+        <div className="grid grid-cols-2 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold text-orange-600">{stats.totalClothing}</div>
+            <div className="text-sm text-gray-600">Roupas</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-emerald-600">{stats.totalAccessories}</div>
+            <div className="text-sm text-gray-600">Acessórios</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-violet-600">{stats.totalOutfits}</div>
+            <div className="text-sm text-gray-600">Outfits</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold text-blue-600">{stats.aiAnalyzedTotal}</div>
+            <div className="text-sm text-gray-600">AI Analisados</div>
+          </div>
+        </div>
+        
+        {!stats.hasItems && (
+          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-sm text-yellow-800">
+              💡 Adiciona algumas roupas e acessórios para receberes conselhos mais personalizados!
+            </p>
+          </div>
+        )}
+      </div>
+    );
   };
 
-  if (showCamera) {
+  // Botões de acesso rápido
+  const QuickAccessButtons = () => (
+    <div className="grid grid-cols-2 gap-3 mb-6">
+      <button
+        onClick={() => navigateToScreen('wardrobe')}
+        className="flex items-center justify-center p-3 bg-orange-50 border border-orange-200 rounded-xl hover:bg-orange-100 transition-colors"
+      >
+        <span className="text-orange-600 mr-2">👕</span>
+        <span className="text-sm font-medium text-orange-800">Ver Roupas</span>
+      </button>
+      <button
+        onClick={() => navigateToScreen('accessories')}
+        className="flex items-center justify-center p-3 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-colors"
+      >
+        <span className="text-emerald-600 mr-2">⌚</span>
+        <span className="text-sm font-medium text-emerald-800">Ver Acessórios</span>
+      </button>
+      <button
+        onClick={() => navigateToScreen('create-outfit')}
+        className="flex items-center justify-center p-3 bg-violet-50 border border-violet-200 rounded-xl hover:bg-violet-100 transition-colors"
+      >
+        <span className="text-violet-600 mr-2">🎨</span>
+        <span className="text-sm font-medium text-violet-800">Criar Outfit</span>
+      </button>
+      <button
+        onClick={() => sendMessage("Dá-me 3 dicas rápidas de styling com base na minha coleção atual.")}
+        className="flex items-center justify-center p-3 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition-colors"
+      >
+        <span className="text-blue-600 mr-2">💡</span>
+        <span className="text-sm font-medium text-blue-800">Dicas Rápidas</span>
+      </button>
+    </div>
+  );
+
+  if (!OPENAI_API_KEY) {
     return (
-      <CameraCapture
-        onCapture={handleCameraCapture}
-        onClose={() => setShowCamera(false)}
-      />
+      <div className="min-h-screen bg-gradient-to-br from-green-400 to-blue-600 p-6 pb-24 flex items-center justify-center">
+        <div className="bg-white rounded-2xl p-8 text-center max-w-md mx-auto">
+          <Sparkles className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <h2 className="text-xl font-bold text-gray-800 mb-2">Funcionalidade AI Indisponível</h2>
+          <p className="text-gray-600 mb-6">
+            Para usar o consultor de moda AI, é necessário configurar uma API key do OpenAI.
+          </p>
+          <button
+            onClick={() => navigateToScreen('ai-setup')}
+            className="bg-blue-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-600 transition-colors"
+          >
+            Configurar AI
+          </button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-400 to-blue-600 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-green-400 to-blue-600 p-6 pb-24">
+      
       {/* Header */}
-      <div className="p-6 pb-0">
-        <div className="max-w-md mx-auto">
-          <div className="flex items-center mb-4 pt-8">
-            <button onClick={() => navigateToScreen('home')} className="text-white">
-              <ArrowLeft className="h-6 w-6" />
-            </button>
-            <h1 className="text-2xl font-bold text-white ml-4">Consultor de Estilo IA</h1>
-          </div>
+      <div className="flex items-center justify-between mb-6 pt-8">
+        <button onClick={() => navigateToScreen('home')} className="text-white">
+          <ArrowLeft className="h-6 w-6" />
+        </button>
+        <div className="flex items-center space-x-2 bg-black text-white px-4 py-2 rounded-full transform rotate-1">
+          <Sparkles className="h-4 w-4" />
+          <span className="font-bold tracking-wide text-sm">STYLE CHAT</span>
         </div>
+        <button
+          onClick={() => navigateToScreen('personal-stylist')}
+          className="bg-white/20 text-white p-2 rounded-full backdrop-blur-sm hover:bg-white/30 transition-colors"
+        >
+          <User className="h-5 w-5" />
+        </button>
       </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 p-6 pt-2 overflow-hidden">
-        <div className="max-w-md mx-auto h-full flex flex-col">
-          <div className="flex-1 overflow-y-auto space-y-4 mb-4">
-            {messages.map((message) => (
-              <div
-                key={message.id}
-                className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
+      <div className="bg-white rounded-2xl p-6 shadow-xl max-h-[85vh] overflow-hidden flex flex-col">
+        
+        {/* Collection Overview */}
+        <CollectionOverview />
+        
+        {/* Quick Access Buttons */}
+        <QuickAccessButtons />
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto mb-4 space-y-4 max-h-96">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
+            >
+              <div className={`max-w-[80%] ${message.isUser ? 'order-2' : 'order-1'}`}>
                 <div
-                  className={`max-w-[80%] p-4 rounded-2xl ${
-                    message.type === 'user'
-                      ? 'bg-white text-gray-800'
-                      : 'bg-white/20 text-white backdrop-blur-sm'
+                  className={`p-4 rounded-2xl ${
+                    message.isUser
+                      ? 'bg-gradient-to-r from-green-500 to-blue-500 text-white ml-4'
+                      : message.isError
+                        ? 'bg-red-50 text-red-800 border border-red-200 mr-4'
+                        : 'bg-gray-100 text-gray-800 mr-4'
                   }`}
                 >
-                  {message.image && (
-                    <div className="mb-3">
-                      <img
-                        src={message.image}
-                        alt="Outfit enviado"
-                        className="w-full h-40 object-cover rounded-xl cursor-pointer hover:opacity-90 transition-opacity"
-                        onClick={() => handleImageClick(message.image)}
-                      />
-                    </div>
-                  )}
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                    {message.content}
+                    {message.text}
                   </p>
-                  <p className={`text-xs mt-2 ${
-                    message.type === 'user' ? 'text-gray-500' : 'text-white/70'
-                  }`}>
+                  <p className={`text-xs mt-2 ${message.isUser ? 'text-white/70' : 'text-gray-500'}`}>
                     {message.timestamp.toLocaleTimeString('pt-PT', { 
                       hour: '2-digit', 
                       minute: '2-digit' 
@@ -283,112 +382,127 @@ INSTRUÇÕES IMPORTANTES:
                   </p>
                 </div>
               </div>
-            ))}
-            
-            {isLoading && (
-              <div className="flex justify-start">
-                <div className="bg-white/20 text-white backdrop-blur-sm p-4 rounded-2xl">
-                  <div className="flex items-center space-x-2">
-                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
-                    <span className="text-sm">A analisar...</span>
-                  </div>
+              
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                message.isUser ? 'order-1 bg-gradient-to-r from-green-500 to-blue-500' : 'order-2 bg-gray-200'
+              }`}>
+                {message.isUser ? (
+                  <User className="h-4 w-4 text-white" />
+                ) : (
+                  <Bot className="h-4 w-4 text-gray-600" />
+                )}
+              </div>
+            </div>
+          ))}
+          
+          {isLoading && (
+            <div className="flex justify-start">
+              <div className="bg-gray-200 rounded-full p-3 mr-4">
+                <Bot className="h-4 w-4 text-gray-600" />
+              </div>
+              <div className="bg-gray-100 rounded-2xl p-4">
+                <div className="flex space-x-2">
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                 </div>
               </div>
-            )}
-            
-            <div ref={messagesEndRef} />
-          </div>
+            </div>
+          )}
+          
+          <div ref={messagesEndRef} />
+        </div>
 
-          {/* Input Area */}
-          <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-4">
-            {selectedImage && (
-              <div className="mb-3 relative">
-                <img
-                  src={selectedImage}
-                  alt="Imagem selecionada"
-                  className="w-16 h-16 object-cover rounded-xl"
-                />
+        {/* Quick Suggestions */}
+        {messages.length <= 1 && (
+          <div className="mb-4">
+            <h3 className="text-sm font-medium text-gray-700 mb-3">Sugestões rápidas:</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {quickSuggestions.slice(0, 4).map((suggestion, index) => (
                 <button
-                  onClick={() => setSelectedImage(null)}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                  key={index}
+                  onClick={() => sendMessage(suggestion.prompt)}
+                  className="text-left p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                  disabled={isLoading}
                 >
-                  <X className="h-3 w-3" />
+                  <div className="flex items-center mb-1">
+                    <span className="mr-2 text-sm">{suggestion.icon}</span>
+                    <span className="text-sm font-medium text-gray-700">{suggestion.title}</span>
+                  </div>
+                  <p className="text-xs text-gray-500 line-clamp-2">{suggestion.prompt.substring(0, 60)}...</p>
                 </button>
-              </div>
-            )}
-            
-            <div className="flex items-end space-x-2">
-              <button
-                onClick={() => setShowCamera(true)}
-                className="p-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors flex-shrink-0"
-              >
-                <Camera className="h-5 w-5" />
-              </button>
-              
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-colors flex-shrink-0"
-              >
-                <Upload className="h-5 w-5" />
-              </button>
-              
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-              />
-              
-              <textarea
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                placeholder="Pergunta algo sobre moda ou envia uma foto..."
-                className="flex-1 bg-white/20 text-white placeholder-white/70 border-0 rounded-lg p-3 resize-none focus:ring-2 focus:ring-white/50 focus:outline-none"
-                rows="1"
-                style={{ minHeight: '44px', maxHeight: '120px' }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    sendMessage();
-                  }
-                }}
-              />
-              
-              <button
-                onClick={sendMessage}
-                disabled={(!inputText.trim() && !selectedImage) || isLoading}
-                className="p-2 bg-blue-500 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-blue-600 transition-colors flex-shrink-0"
-              >
-                <Send className="h-5 w-5" />
-              </button>
+              ))}
             </div>
           </div>
+        )}
+
+        {/* Input */}
+        <div className="flex items-center space-x-3">
+          <input
+            ref={inputRef}
+            type="text"
+            value={currentMessage}
+            onChange={(e) => setCurrentMessage(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && sendMessage(currentMessage)}
+            placeholder="Pergunta algo sobre moda e estilo..."
+            disabled={isLoading}
+            className="flex-1 px-4 py-3 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+          <button
+            onClick={() => sendMessage(currentMessage)}
+            disabled={!currentMessage.trim() || isLoading}
+            className="bg-gradient-to-r from-green-500 to-blue-500 text-white p-3 rounded-2xl hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Send className="h-5 w-5" />
+          </button>
         </div>
+
+        {/* More Suggestions */}
+        {messages.length > 1 && (
+          <div className="mt-4">
+            <details className="group">
+              <summary className="flex items-center justify-center p-2 text-sm text-gray-600 hover:text-gray-800 cursor-pointer">
+                <span>Mais sugestões</span>
+                <Plus className="h-4 w-4 ml-1 group-open:rotate-45 transition-transform" />
+              </summary>
+              <div className="mt-3 grid grid-cols-1 gap-2 max-h-32 overflow-y-auto">
+                {quickSuggestions.slice(4).map((suggestion, index) => (
+                  <button
+                    key={index + 4}
+                    onClick={() => sendMessage(suggestion.prompt)}
+                    className="text-left p-2 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors text-sm"
+                    disabled={isLoading}
+                  >
+                    <span className="mr-2">{suggestion.icon}</span>
+                    {suggestion.title}
+                  </button>
+                ))}
+              </div>
+            </details>
+          </div>
+        )}
       </div>
 
       {/* Image Modal */}
       {showImageModal && modalImage && (
-        <div 
-          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4"
-          onClick={() => setShowImageModal(false)}
-        >
-          <div className="relative bg-white rounded-2xl p-4 max-w-sm max-h-[80vh] w-full">
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
+          <div className="relative max-w-4xl max-h-full">
             <button
               onClick={() => setShowImageModal(false)}
-              className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg z-10"
+              className="absolute top-4 right-4 bg-white/20 text-white p-2 rounded-full backdrop-blur-sm hover:bg-white/30 transition-colors z-10"
             >
-              <X className="h-5 w-5" />
+              <X className="h-6 w-6" />
             </button>
             <img
               src={modalImage}
-              alt="Imagem ampliada"
-              className="w-full h-auto object-contain rounded-lg"
-              onClick={(e) => e.stopPropagation()}
+              alt="Preview"
+              className="max-w-full max-h-full object-contain rounded-xl"
             />
           </div>
         </div>
       )}
+
+      <BottomNavigation currentScreen="style-chat" navigateToScreen={navigateToScreen} />
     </div>
   );
 };

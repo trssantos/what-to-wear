@@ -239,16 +239,6 @@ export const APP_CONFIG = {
   }
 };
 
-// Temas de cores para gradientes
-export const COLOR_THEMES = {
-  auth: 'from-purple-400 via-pink-500 to-red-500',
-  home: 'from-purple-400 via-pink-500 to-red-500',
-  wardrobe: 'from-orange-400 to-red-600',
-  outfits: 'from-violet-400 to-purple-600',
-  ai: 'from-blue-400 to-purple-600',
-  styleChat: 'from-green-400 to-blue-600',
-  recommendations: 'from-indigo-400 to-purple-600'
-};
 
 // URLs úteis
 export const EXTERNAL_LINKS = {
@@ -270,4 +260,148 @@ export const VALIDATION_RULES = {
 export const STORAGE_KEYS = {
   userPreferences: 'whatToWear_preferences',
   onboardingComplete: 'whatToWear_onboarding'
+};
+
+
+// Categorias base de acessórios para todos os gêneros
+export const BASE_ACCESSORIES_CATEGORIES = [
+  'Relógios',
+  'Óculos de Sol',
+  'Cintos',
+  'Carteiras',
+  'Mochilas/Malas',
+  'Chapéus/Bonés',
+  'Luvas',
+  'Cachecóis'
+];
+
+// Categorias específicas femininas de acessórios
+export const FEMALE_SPECIFIC_ACCESSORIES = [
+  'Brincos',
+  'Colares',
+  'Pulseiras',
+  'Anéis',
+  'Broches/Pins',
+  'Tiaras/Headbands',
+  'Echarpes/Lenços',
+  'Carteiras Femininas',
+  'Bolsas de Mão',
+  'Bolsas Pequenas',
+  'Clutches',
+  'Bolsas de Ombro',
+  'Bolsas Grandes',
+  'Mochilas Femininas',
+  'Óculos de Leitura',
+  'Hair Accessories',
+  'Scrunchies',
+  'Presilhas',
+  'Elásticos de Cabelo',
+  'Bandanas',
+  'Turbantes',
+  'Xales',
+  'Pashminas',
+  'Meias Especiais',
+  'Knee Highs',
+  'Suspensórios Femininos'
+];
+
+// Categorias específicas masculinas de acessórios
+export const MALE_SPECIFIC_ACCESSORIES = [
+  'Gravatas',
+  'Laços/Bow Ties',
+  'Lenços de Bolso',
+  'Abotoaduras',
+  'Clips de Gravata',
+  'Carteiras Masculinas',
+  'Porta-cartões',
+  'Mochilas Masculinas',
+  'Pastas/Briefcases',
+  'Messenger Bags',
+  'Bandoleiras',
+  'Suspensórios',
+  'Cintos de Couro',
+  'Cintos Casuais',
+  'Pulseiras Masculinas',
+  'Colares Masculinos',
+  'Anéis Masculinos',
+  'Piercings',
+  'Óculos de Leitura Masculinos',
+  'Bonés Desportivos',
+  'Chapéus Formais',
+  'Gorros',
+  'Viseiras',
+  'Bandanas Masculinas',
+  'Meias Especiais Masculinas'
+];
+
+// Função para obter categorias de acessórios baseadas no gênero
+export const getAccessoryCategoriesByGender = (gender) => {
+  const baseCategories = [...BASE_ACCESSORIES_CATEGORIES];
+  
+  switch (gender) {
+    case 'female':
+      return [...baseCategories, ...FEMALE_SPECIFIC_ACCESSORIES].sort();
+    case 'male':
+      return [...baseCategories, ...MALE_SPECIFIC_ACCESSORIES].sort();
+    case 'non-binary':
+      // Para non-binary, incluir todas as categorias
+      return [...baseCategories, ...FEMALE_SPECIFIC_ACCESSORIES, ...MALE_SPECIFIC_ACCESSORIES].sort();
+    default:
+      // Se género não especificado, mostrar todas
+      return [...baseCategories, ...FEMALE_SPECIFIC_ACCESSORIES, ...MALE_SPECIFIC_ACCESSORIES].sort();
+  }
+};
+
+// Tags específicas para acessórios
+export const ACCESSORIES_TAGS = [
+  'statement',
+  'delicate',
+  'bold',
+  'minimalist',
+  'vintage',
+  'modern',
+  'formal',
+  'casual',
+  'everyday',
+  'special-occasion',
+  'work',
+  'party',
+  'travel',
+  'sport',
+  'luxury',
+  'affordable',
+  'handmade',
+  'designer',
+  'practical',
+  'decorative',
+  'summer',
+  'winter',
+  'spring',
+  'autumn',
+  'waterproof',
+  'leather',
+  'metal',
+  'fabric',
+  'sustainable'
+];
+
+// Tema de cores para acessórios (diferente do wardrobe)
+export const ACCESSORIES_COLOR_THEME = {
+  main: 'from-emerald-400 to-teal-600',
+  accent: 'emerald',
+  secondary: 'teal',
+  light: 'emerald-100',
+  dark: 'emerald-800'
+};
+
+// Atualização dos temas de cores existentes
+export const COLOR_THEMES = {
+  auth: 'from-purple-400 via-pink-500 to-red-500',
+  home: 'from-purple-400 via-pink-500 to-red-500',
+  wardrobe: 'from-orange-400 to-red-600',
+  accessories: 'from-emerald-400 to-teal-600', // NOVO
+  outfits: 'from-violet-400 to-purple-600',
+  ai: 'from-blue-400 to-purple-600',
+  styleChat: 'from-green-400 to-blue-600',
+  recommendations: 'from-indigo-400 to-purple-600'
 };

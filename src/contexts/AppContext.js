@@ -4,6 +4,7 @@ import { auth } from '../firebase';
 import { useWardrobe } from '../hooks/useWardrobe';
 import { useOutfits } from '../hooks/useOutfits';
 import { useProfile } from '../hooks/useProfile';
+import { useAccessories } from '../hooks/useAccessories';
 
 const AppContext = createContext();
 
@@ -23,6 +24,20 @@ export const AppProvider = ({ children }) => {
   const wardrobeHook = useWardrobe();
   const outfitsHook = useOutfits();
   const profileHook = useProfile();
+
+  const accessoriesData = useAccessories(user?.uid);
+  const {
+    accessories,
+    isLoading: isLoadingAccessories,
+    addAccessory,
+    updateAccessory,
+    deleteAccessory,
+    getAccessoryById,
+    searchAccessories,
+    advancedFilter: advancedFilterAccessories,
+    accessoriesAnalytics,
+    getAccessoriesRecommendations
+  } = useAccessories(user?.uid);
 
   // Load data when user changes
   useEffect(() => {
@@ -65,7 +80,18 @@ export const AppProvider = ({ children }) => {
     setSelectedOutfit,
     
     // Utilities
-    getItemById
+    getItemById,
+
+    accessories: accessoriesData?.accessories || [],
+    isLoadingAccessories: accessoriesData?.isLoading || false,
+    addAccessory: accessoriesData?.addAccessory || (() => {}),
+    updateAccessory: accessoriesData?.updateAccessory || (() => {}),
+    deleteAccessory: accessoriesData?.deleteAccessory || (() => {}),
+    getAccessoryById: accessoriesData?.getAccessoryById || (() => null),
+    searchAccessories: accessoriesData?.searchAccessories || (() => []),
+    advancedFilterAccessories: accessoriesData?.advancedFilter || (() => []),
+    accessoriesAnalytics: accessoriesData?.accessoriesAnalytics || { totalItems: 0 },
+    getAccessoriesRecommendations: accessoriesData?.getAccessoriesRecommendations || (() => [])
   };
 
   return (

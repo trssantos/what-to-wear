@@ -1,131 +1,67 @@
-// src/components/shared/BottomNavigation.js - Versão atualizada
-import React from 'react';
-import { Zap, Shirt, Dna, Bot, ShoppingBag, Package } from 'lucide-react';
+// src/components/shared/BottomNavigation.js - ATUALIZAÇÃO PARA INCLUIR ACESSÓRIOS
 
-const BottomNavigation = ({ 
-  activeTab, 
-  setActiveTab, 
-  navigateToScreen,
-  currentScreen = null,
-  className = "" 
-}) => {
-  
-  const bottomNavItems = [
-    { id: 'quick', icon: Zap, label: 'Rápido' },
-    { id: 'wardrobe', icon: Shirt, label: 'Armário' },
-    { id: 'analysis', icon: Dna, label: 'Análise' },
-    { id: 'ai', icon: Bot, label: 'IA' },
-    { id: 'outfits', icon: Package, label: 'Outfits' },
-    { id: 'shopping', icon: ShoppingBag, label: 'Shopping' }
+import React from 'react';
+import { Home, Shirt, Watch, Palette, Sparkles } from 'lucide-react';
+
+const BottomNavigation = ({ currentScreen, navigateToScreen }) => {
+  const navItems = [
+    {
+      id: 'home',
+      label: 'Home',
+      icon: Home,
+      gradient: 'from-purple-400 to-pink-500'
+    },
+    {
+      id: 'wardrobe',
+      label: 'Armário',
+      icon: Shirt,
+      gradient: 'from-orange-400 to-red-500'
+    },
+    {
+      id: 'accessories', // ✨ NOVO
+      label: 'Acessórios',
+      icon: Watch,
+      gradient: 'from-emerald-400 to-teal-500'
+    },
+    {
+      id: 'outfits',
+      label: 'Outfits',
+      icon: Palette,
+      gradient: 'from-violet-400 to-purple-500'
+    },
+    {
+      id: 'style-chat',
+      label: 'AI',
+      icon: Sparkles,
+      gradient: 'from-blue-400 to-indigo-500'
+    }
   ];
 
-  // ✅ Mapeamento atualizado com nova organização
-  const getActiveTabFromScreen = (screen) => {
-    const screenMappings = {
-      // Home sempre mostra o activeTab atual
-      'home': activeTab,
-      
-      // Wardrobe category
-      'wardrobe': 'wardrobe',
-      'add-item': 'wardrobe',
-      'item-detail': 'wardrobe',
-      
-      // Analysis category  
-      'color-analysis': 'analysis',
-      'body-shape-analysis': 'analysis',
-      'style-dna': 'analysis',
-      'style-twin-finder': 'analysis',
-      
-      // AI category
-      'style-chat': 'ai',
-      'personal-stylist': 'ai',
-      'quick-analysis': 'quick', // ✨ MOVIDO: Análise rápida agora está em quick access
-      'recommendations': 'ai',
-      'personal-shopper': 'ai',
-      
-      // Outfits category
-      'outfits': 'outfits',
-      'create-outfit': 'outfits',
-      'outfit-detail': 'outfits',
-      'outfit-analysis': 'outfits', // ✨ NOVA FUNCIONALIDADE
-      
-      // Quick access category 
-      'outfit-quiz': 'quick', // ✨ MOVIDO: outfit-quiz agora está em quick access
-      
-      // Shopping category
-      'smart-shopping': 'shopping',
-    };
-    
-    return screenMappings[screen] || 'quick';
-  };
-
-  const currentActiveTab = currentScreen ? 
-    getActiveTabFromScreen(currentScreen) : activeTab;
-
-  // ✅ Handle click - funciona para ambos os casos (home e outros ecrãs)
-  const handleNavClick = (item) => {
-    if (setActiveTab) {
-      // Se é o HomeScreen, apenas muda o tab
-      setActiveTab(item.id);
-    } else if (navigateToScreen) {
-      // Se é outro ecrã, navega baseado na categoria
-      const navigationMappings = {
-        'quick': 'home', // Vai para home na tab quick
-        'wardrobe': 'wardrobe',
-        'analysis': 'color-analysis', // Primeira feature da categoria
-        'ai': 'style-chat', // StyleChatScreen como primeira opção IA
-        'outfits': 'outfits', // ✨ NOVA TAB: vai para lista de outfits
-        'shopping': 'smart-shopping'
-      };
-      
-      const targetScreen = navigationMappings[item.id] || 'home';
-      
-      if (targetScreen === 'home') {
-        // Quando vai para home, define o activeTab
-        navigateToScreen('home', { activeTab: item.id });
-      } else {
-        navigateToScreen(targetScreen);
-      }
-    }
-  };
-
   return (
-    <div className={`fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 ${className}`}>
-      <div className="max-w-md mx-auto">
-        <div className="flex">
-          <div className="grid grid-cols-6 w-full">
-            {bottomNavItems.map((item) => {
-              const isActive = currentActiveTab === item.id;
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleNavClick(item)}
-                  className={`flex flex-col items-center justify-center py-2 px-1 transition-colors ${
-                    isActive 
-                      ? 'text-purple-600 bg-purple-50' 
-                      : 'text-gray-600 active:bg-gray-100'
-                  }`}
-                  style={{ 
-                    WebkitTapHighlightColor: 'transparent',
-                    touchAction: 'manipulation'
-                  }}
-                >
-                  <Icon className={`h-4 w-4 ${isActive ? 'text-purple-600' : 'text-gray-600'}`} />
-                  <span className={`text-xs mt-1 font-medium ${
-                    isActive ? 'text-purple-600' : 'text-gray-600'
-                  }`}>
-                    {item.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 z-40">
+      <div className="flex justify-around items-center max-w-md mx-auto">
+        {navItems.map((item) => {
+          const isActive = currentScreen === item.id;
+          const Icon = item.icon;
+          
+          return (
+            <button
+              key={item.id}
+              onClick={() => navigateToScreen(item.id)}
+              className={`flex flex-col items-center py-2 px-3 rounded-xl transition-all duration-200 ${
+                isActive 
+                  ? `bg-gradient-to-r ${item.gradient} text-white shadow-lg transform scale-105` 
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Icon className={`h-6 w-6 mb-1 ${isActive ? 'text-white' : ''}`} />
+              <span className={`text-xs font-medium ${isActive ? 'text-white' : ''}`}>
+                {item.label}
+              </span>
+            </button>
+          );
+        })}
       </div>
-      
-      {/* Safe area padding for devices with home indicator */}
-      <div className="h-safe-area-inset-bottom bg-white"></div>
     </div>
   );
 };

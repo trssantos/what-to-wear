@@ -43,6 +43,11 @@ import { AppProvider, useAppContext } from './contexts/AppContext';
 // Import constants
 import { OPENAI_API_KEY } from './utils/constants';
 
+import AccessoriesScreen from './components/accessories/AccessoriesScreen';
+import AddAccessoryScreen from './components/accessories/AddAccessoryScreen';
+import AccessoryDetailScreen from './components/accessories/AccessoryDetailScreen';
+
+
 // Componente interno que tem acesso ao AppContext
 const AppContent = () => {
   const { userProfile, isLoadingProfile } = useAppContext();
@@ -204,6 +209,14 @@ const AppContent = () => {
         return <SmartShoppingScreen {...commonProps} />;
       case 'ai-setup':
         return <AISetupScreen {...commonProps} />;
+
+        case 'accessories':
+        return <AccessoriesScreen navigateToScreen={navigateToScreen} />;
+      case 'add-accessory':
+        return <AddAccessoryScreen navigateToScreen={navigateToScreen} user={user} />;
+      case 'accessory-detail':
+        return <AccessoryDetailScreen navigateToScreen={navigateToScreen} screenData={screenData} />;
+      
       
       default:
         return <HomeScreen {...commonProps} />;
