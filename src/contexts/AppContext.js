@@ -1,4 +1,4 @@
-// src/contexts/AppContext.js - Versão sem delay
+// src/contexts/AppContext.js - Versão corrigida
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { auth } from '../firebase';
 import { useWardrobe } from '../hooks/useWardrobe';
@@ -17,6 +17,7 @@ export const useAppContext = () => {
 };
 
 export const AppProvider = ({ children }) => {
+  const [user, setUser] = useState(null); // Adicionado estado user
   const [selectedItem, setSelectedItem] = useState(null);
   const [selectedOutfit, setSelectedOutfit] = useState(null);
 
@@ -25,7 +26,7 @@ export const AppProvider = ({ children }) => {
   const outfitsHook = useOutfits();
   const profileHook = useProfile();
 
-  const accessoriesData = useAccessories(user?.uid);
+  // Initialize accessories hook with user
   const {
     accessories,
     isLoading: isLoadingAccessories,
@@ -41,13 +42,15 @@ export const AppProvider = ({ children }) => {
 
   // Load data when user changes
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        console.log('Loading user data for:', user.uid);
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser); // Define o user no estado local
+      
+      if (currentUser) {
+        console.log('Loading user data for:', currentUser.uid);
         // Removido o setTimeout - carregar imediatamente
-        wardrobeHook.loadUserWardrobe(user.uid);
-        outfitsHook.loadUserOutfits(user.uid);
-        profileHook.loadUserProfile(user.uid);
+        wardrobeHook.loadUserWardrobe(currentUser.uid);
+        outfitsHook.loadUserOutfits(currentUser.uid);
+        profileHook.loadUserProfile(currentUser.uid);
       } else {
         wardrobeHook.setWardrobe([]);
         outfitsHook.setOutfits([]);
@@ -64,6 +67,9 @@ export const AppProvider = ({ children }) => {
   };
 
   const value = {
+    // User
+    user,
+    
     // Wardrobe
     ...wardrobeHook,
     
@@ -73,6 +79,18 @@ export const AppProvider = ({ children }) => {
     // Profile
     ...profileHook,
     
+    // Accessories
+    accessories,
+    isLoadingAccessories,
+    addAccessory,
+    updateAccessory,
+    deleteAccessory,
+    getAccessoryById,
+    searchAccessories,
+    advancedFilterAccessories,
+    accessoriesAnalytics,
+    getAccessoriesRecommendations,
+    
     // Selected items
     selectedItem,
     setSelectedItem,
@@ -80,18 +98,7 @@ export const AppProvider = ({ children }) => {
     setSelectedOutfit,
     
     // Utilities
-    getItemById,
-
-    accessories: accessoriesData?.accessories || [],
-    isLoadingAccessories: accessoriesData?.isLoading || false,
-    addAccessory: accessoriesData?.addAccessory || (() => {}),
-    updateAccessory: accessoriesData?.updateAccessory || (() => {}),
-    deleteAccessory: accessoriesData?.deleteAccessory || (() => {}),
-    getAccessoryById: accessoriesData?.getAccessoryById || (() => null),
-    searchAccessories: accessoriesData?.searchAccessories || (() => []),
-    advancedFilterAccessories: accessoriesData?.advancedFilter || (() => []),
-    accessoriesAnalytics: accessoriesData?.accessoriesAnalytics || { totalItems: 0 },
-    getAccessoriesRecommendations: accessoriesData?.getAccessoriesRecommendations || (() => [])
+    getItemById
   };
 
   return (

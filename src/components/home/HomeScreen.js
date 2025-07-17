@@ -1,4 +1,4 @@
-// src/components/home/HomeScreen.js - VERSÃO COMPLETA COM ACESSÓRIOS
+// src/components/home/HomeScreen.js - VERSÃO CORRIGIDA
 
 import React, { useState, useEffect } from 'react';
 import { Home, User, Shirt, Watch, Palette, Sparkles, Plus, TrendingUp, Calendar, Settings, Target, BarChart3 } from 'lucide-react';
@@ -36,11 +36,16 @@ const HomeScreen = ({ navigateToScreen }) => {
     return 'Boa noite';
   };
 
+  // Definir variáveis para estatísticas
+  const totalClothing = wardrobeAnalytics?.totalItems || 0;
+  const totalAccessories = accessoriesAnalytics?.totalItems || 0;
+  const totalOutfits = outfits?.length || 0;
+
   // Estatísticas para incluir acessórios
   const stats = [
     {
       label: 'Peças de Roupa',
-      value: wardrobeAnalytics?.totalItems || 0,
+      value: totalClothing,
       icon: Shirt,
       color: 'text-orange-600',
       bg: 'bg-orange-100',
@@ -48,7 +53,7 @@ const HomeScreen = ({ navigateToScreen }) => {
     },
     {
       label: 'Acessórios',
-      value: accessoriesAnalytics?.totalItems || 0,
+      value: totalAccessories,
       icon: Watch,
       color: 'text-emerald-600',
       bg: 'bg-emerald-100',
@@ -56,7 +61,7 @@ const HomeScreen = ({ navigateToScreen }) => {
     },
     {
       label: 'Outfits Criados',
-      value: outfits?.length || 0,
+      value: totalOutfits,
       icon: Palette,
       color: 'text-purple-600',
       bg: 'bg-purple-100',
@@ -108,27 +113,27 @@ const HomeScreen = ({ navigateToScreen }) => {
   const mainFeatures = [
     {
       title: 'Meu Armário',
-      description: `${wardrobeAnalytics?.totalItems || 0} peças catalogadas`,
+      description: `${totalClothing} peças catalogadas`,
       icon: Shirt,
       gradient: 'from-orange-400 to-red-600',
       screen: 'wardrobe',
-      stats: wardrobeAnalytics?.totalItems || 0
+      stats: totalClothing
     },
     {
       title: 'Acessórios',
-      description: `${accessoriesAnalytics?.totalItems || 0} acessórios organizados`,
+      description: `${totalAccessories} acessórios organizados`,
       icon: Watch,
       gradient: 'from-emerald-400 to-teal-600',
       screen: 'accessories',
-      stats: accessoriesAnalytics?.totalItems || 0
+      stats: totalAccessories
     },
     {
       title: 'Meus Outfits',
-      description: `${outfits?.length || 0} combinações criadas`,
+      description: `${totalOutfits} combinações criadas`,
       icon: Palette,
       gradient: 'from-violet-400 to-purple-600',
       screen: 'outfits',
-      stats: outfits?.length || 0
+      stats: totalOutfits
     },
     {
       title: 'Stylist AI',
@@ -171,9 +176,6 @@ const HomeScreen = ({ navigateToScreen }) => {
   // Recomendações inteligentes
   const getSmartRecommendations = () => {
     const recommendations = [];
-    const totalClothing = wardrobeAnalytics?.totalItems || 0;
-    const totalAccessories = accessoriesAnalytics?.totalItems || 0;
-    const totalOutfits = outfits?.length || 0;
 
     if (totalAccessories < totalClothing * 0.3 && totalClothing > 5) {
       recommendations.push({
@@ -215,171 +217,114 @@ const HomeScreen = ({ navigateToScreen }) => {
       
       {/* Header */}
       <div className={`transform transition-all duration-1000 ${isRevealed ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
-        <div className="flex items-center justify-between mb-4 pt-8">
+        <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white">
-              {getGreeting()}{userProfile?.name ? `, ${userProfile.name.split(' ')[0]}` : ''}!
+            <h1 className="text-3xl font-black text-white">
+              {getGreeting()}{userProfile?.name ? `, ${userProfile.name.split(' ')[0]}` : ''}! 👋
             </h1>
-            <p className="text-white/80 text-sm">
-              {currentTime.toLocaleDateString('pt-PT', { 
-                weekday: 'long',
-                day: 'numeric', 
-                month: 'long' 
+            <p className="text-white/70 mt-1">
+              {new Date().toLocaleDateString('pt-PT', { 
+                weekday: 'long', 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric' 
               })}
             </p>
           </div>
-          <button
-            onClick={() => navigateToScreen('profile-settings')}
-            className="bg-white/20 text-white p-3 rounded-full backdrop-blur-sm hover:bg-white/30 transition-colors"
-          >
-            <Settings className="h-6 w-6" />
-          </button>
-        </div>
-
-        {/* Welcome Message */}
-        <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 mb-6">
-          <p className="text-white text-center">
-            ✨ Bem-vindo ao teu armário digital inteligente ✨
-          </p>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className={`grid grid-cols-2 gap-4 mb-6 transform transition-all duration-1000 delay-200 ${isRevealed ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
-        {stats.map((stat, index) => {
-          const Icon = stat.icon;
-          return (
-            <div
-              key={stat.label}
-              className={`bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-white transform transition-all duration-500 delay-${index * 100} hover:scale-105`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <Icon className={`h-6 w-6 ${stat.color.replace('text-', 'text-white')}`} />
-                <span className="text-2xl font-bold">{stat.value}</span>
-              </div>
-              <p className="text-sm text-white/90 font-medium">{stat.label}</p>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Smart Recommendations */}
-      {recommendations.length > 0 && (
-        <div className={`mb-6 transform transition-all duration-1000 delay-300 ${isRevealed ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
-          <h2 className="text-xl font-bold text-white mb-4 flex items-center">
-            <Target className="h-5 w-5 mr-2" />
-            Recomendações para Ti
-          </h2>
-          <div className="space-y-3">
-            {recommendations.map((rec, index) => {
-              const Icon = rec.icon;
-              return (
-                <button
-                  key={index}
-                  onClick={rec.action}
-                  className="w-full bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-left hover:bg-white/20 transition-all hover:scale-105"
-                >
-                  <div className="flex items-center">
-                    <div className={`w-10 h-10 bg-${rec.color}-500 rounded-full flex items-center justify-center mr-3`}>
-                      <Icon className="h-5 w-5 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-semibold text-white">{rec.title}</h3>
-                      <p className="text-sm text-white/80">{rec.description}</p>
-                    </div>
-                  </div>
-                </button>
-              );
-            })}
+          
+          <div className="bg-white/20 backdrop-blur-sm rounded-full p-3">
+            <Calendar className="h-6 w-6 text-white" />
           </div>
         </div>
-      )}
+      </div>
+
+      {/* Statistics Grid */}
+      <div className={`grid grid-cols-2 gap-4 mb-6 transform transition-all duration-1000 delay-200 ${isRevealed ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
+        {stats.map((stat, index) => (
+          <div 
+            key={index}
+            className="bg-white/90 backdrop-blur-sm rounded-2xl p-4 shadow-lg"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className={`p-2 rounded-lg ${stat.bg}`}>
+                <stat.icon className={`h-5 w-5 ${stat.color}`} />
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-black text-gray-800">{stat.value}</div>
+              </div>
+            </div>
+            <p className="text-sm font-medium text-gray-600">{stat.label}</p>
+          </div>
+        ))}
+      </div>
 
       {/* Quick Actions */}
-      <div className={`mb-6 transform transition-all duration-1000 delay-400 ${isRevealed ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
+      <div className={`mb-6 transform transition-all duration-1000 delay-300 ${isRevealed ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
         <h2 className="text-xl font-bold text-white mb-4">Ações Rápidas</h2>
         <div className="grid grid-cols-2 gap-3">
-          {quickActions.map((action, index) => {
-            const Icon = action.icon;
-            return (
-              <button
-                key={action.title}
-                onClick={action.action}
-                className={`bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-white hover:bg-white/20 transition-all hover:scale-105 transform delay-${index * 100}`}
-              >
-                <div className={`w-12 h-12 bg-gradient-to-r ${action.gradient} rounded-xl flex items-center justify-center mb-3 mx-auto`}>
-                  <Icon className="h-6 w-6 text-white" />
-                </div>
-                <h3 className="font-semibold text-sm mb-1">{action.title}</h3>
-                <p className="text-xs text-white/80">{action.description}</p>
-              </button>
-            );
-          })}
+          {quickActions.map((action, index) => (
+            <button
+              key={index}
+              onClick={action.action}
+              className={`bg-gradient-to-r ${action.gradient} p-4 rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all`}
+            >
+              <action.icon className="h-6 w-6 text-white mb-2" />
+              <h3 className="font-bold text-white text-sm">{action.title}</h3>
+              <p className="text-white/80 text-xs">{action.description}</p>
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Main Features */}
-      <div className={`mb-6 transform transition-all duration-1000 delay-500 ${isRevealed ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
+      <div className={`mb-6 transform transition-all duration-1000 delay-400 ${isRevealed ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
         <h2 className="text-xl font-bold text-white mb-4">Explorar</h2>
         <div className="space-y-3">
-          {mainFeatures.map((feature, index) => {
-            const Icon = feature.icon;
-            return (
-              <button
-                key={feature.title}
-                onClick={() => navigateToScreen(feature.screen)}
-                className={`w-full bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-left hover:bg-white/20 transition-all hover:scale-105 transform delay-${index * 100}`}
-              >
-                <div className="flex items-center">
-                  <div className={`w-12 h-12 bg-gradient-to-r ${feature.gradient} rounded-xl flex items-center justify-center mr-4`}>
-                    <Icon className="h-6 w-6 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-white text-lg">{feature.title}</h3>
-                    <p className="text-white/80 text-sm">{feature.description}</p>
-                  </div>
-                  <div className="text-white/60">
-                    {feature.isSpecial ? (
-                      <Sparkles className="h-5 w-5" />
-                    ) : (
-                      <Plus className="h-5 w-5 rotate-45" />
-                    )}
-                  </div>
+          {mainFeatures.map((feature, index) => (
+            <button
+              key={index}
+              onClick={() => navigateToScreen(feature.screen)}
+              className={`w-full bg-gradient-to-r ${feature.gradient} p-4 rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all flex items-center justify-between`}
+            >
+              <div className="flex items-center">
+                <div className="bg-white/20 p-3 rounded-xl mr-4">
+                  <feature.icon className="h-6 w-6 text-white" />
                 </div>
-              </button>
-            );
-          })}
+                <div className="text-left">
+                  <h3 className="font-bold text-white">{feature.title}</h3>
+                  <p className="text-white/80 text-sm">{feature.description}</p>
+                </div>
+              </div>
+              {!feature.isSpecial && (
+                <div className="text-2xl font-black text-white/90">
+                  {feature.stats}
+                </div>
+              )}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* AI Features */}
-      <div className={`mb-6 transform transition-all duration-1000 delay-600 ${isRevealed ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
-        <h2 className="text-xl font-bold text-white mb-4 flex items-center">
-          <Sparkles className="h-5 w-5 mr-2" />
-          Funcionalidades AI
-        </h2>
+      <div className={`mb-6 transform transition-all duration-1000 delay-500 ${isRevealed ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
+        <h2 className="text-xl font-bold text-white mb-4">Inteligência Artificial</h2>
         <div className="grid grid-cols-2 gap-3">
-          {aiFeatures.map((feature, index) => {
-            const Icon = feature.icon;
-            return (
-              <button
-                key={feature.title}
-                onClick={() => navigateToScreen(feature.screen)}
-                className={`bg-white/10 backdrop-blur-sm rounded-2xl p-4 text-white hover:bg-white/20 transition-all hover:scale-105 transform delay-${index * 100}`}
-              >
-                <div className="w-10 h-10 bg-gradient-to-r from-blue-400 to-purple-500 rounded-xl flex items-center justify-center mb-3 mx-auto">
-                  <Icon className="h-5 w-5 text-white" />
-                </div>
-                <h3 className="font-medium text-sm mb-1">{feature.title}</h3>
-                <p className="text-xs text-white/70">{feature.description}</p>
-              </button>
-            );
-          })}
+          {aiFeatures.map((feature, index) => (
+            <button
+              key={index}
+              onClick={() => navigateToScreen(feature.screen)}
+              className="bg-white/10 backdrop-blur-sm border border-white/20 p-4 rounded-2xl hover:bg-white/20 transition-all"
+            >
+              <feature.icon className="h-6 w-6 text-white mb-2" />
+              <h3 className="font-semibold text-white text-sm mb-1">{feature.title}</h3>
+              <p className="text-white/70 text-xs">{feature.description}</p>
+            </button>
+          ))}
         </div>
       </div>
 
-      {/* Daily Tip */}
-      <div className={`transform transition-all duration-1000 delay-700 ${isRevealed ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
+      {/* Smart Tip */}
+      <div className={`mb-6 transform transition-all duration-1000 delay-600 ${isRevealed ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'}`}>
         <div className="bg-gradient-to-r from-yellow-400/20 to-orange-400/20 backdrop-blur-sm rounded-2xl p-4 border border-yellow-300/30">
           <div className="flex items-center mb-2">
             <div className="w-8 h-8 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full flex items-center justify-center mr-3">
